@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>献立＆買い物リスト</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+  <!-- Recipe Modal -->
+  <div id="recipeModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <button id="recipeClose" class="modal-close">×</button>
+      <div id="recipeBody"></div>
+    </div>
+  </div>
+<body>
+  <div class="app-container">
+    <h1>献立＆買い物リスト</h1>
+
+    <div class="form-card">
+      <label>幼児の人数：
+        <input type="number" id="toddlers" min="0" value="0">
+      </label>
+      <label>小学生の人数：
+        <input type="number" id="kids" min="0" value="0">
+      </label>
+      <label>大人の人数：
+        <input type="number" id="adults" min="1" value="2">
+      </label>
+      <label>日数：
+        <input type="number" id="days" min="1" max="7" value="3">
+      </label>
+
+      <fieldset class="meal-selection">
+        <legend>食事の回数</legend>
+        <div class="meal-options">
+          <label><input type="checkbox" value="朝食" checked /> 朝食</label>
+          <label><input type="checkbox" value="昼食" checked /> 昼食</label>
+          <label><input type="checkbox" value="夕食" checked /> 夕食</label>
+        </div>
+      </fieldset>
+
+      <div class="mode-switch">
+        <label><input type="radio" name="mode" value="normal" checked> 標準</label>
+        <label><input type="radio" name="mode" value="economy"> 節約</label>
+        <label><input type="radio" name="mode" value="quick"> 時短</label>
+      </div>
+
+      <label>避けたい食材：
+        <input type="text" id="avoid" placeholder="例：なす、えび">
+      </label>
+
+      <label>リクエスト：
+        <input type="text" id="request" placeholder="例：ヘルシー、節約">
+      </label>
+
+      <label>冷蔵庫にある食材：
+        <textarea id="available" placeholder="ある食材をカンマ区切りで入力"></textarea>
+      </label>
+
+      <button id="generateBtn">献立を考えてみる 🔍</button>
+    </div>
+
+    <div class="menu-container">
+      <div id="menuResults" class="card-grid"></div>
+    </div>
+  </div>
+
+  <!-- レシピモーダル -->
+  <div id="recipeModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <button id="recipeClose" class="modal-close">×</button>
+      <h3 id="recipeTitle"></h3>
+      <p id="recipeMeta"></p>
+      <h4>材料</h4>
+      <ul id="recipeIngredients"></ul>
+      <h4>作り方</h4>
+      <ol id="recipeSteps"></ol>
+      <div id="recipeNutrition" class="nutri-chips"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

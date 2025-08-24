@@ -1,0 +1,134 @@
+/* ==== ベース ==== */
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f5f7fa;
+  color: #333;
+  margin: 0;
+  padding: 20px;
+}
+.app-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; color: #444; }
+
+/* ==== 入力フォーム ==== */
+.form-card {
+  background: #fff; padding: 20px; border-radius: 12px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1); margin-bottom: 30px;
+}
+.form-card label, .form-card fieldset { display: block; margin-bottom: 15px; }
+.form-card input, .form-card textarea {
+  width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc;
+}
+button {
+  width: 100%; padding: 12px; background-color: #4CAF50; color: white;
+  border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
+}
+button:hover { background-color: #45a049; }
+
+/* 食事選択 */
+.meal-selection {
+  border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; background: #f8f9fa;
+}
+.meal-selection legend { font-weight: bold; margin-bottom: 8px; }
+.meal-options { display: flex; gap: 20px; flex-wrap: wrap; }
+.meal-options label {
+  display: flex; flex-direction: column-reverse; align-items: center; justify-content: center;
+  gap: 6px; background: #fff; padding: 10px 16px; border-radius: 6px; border: 1px solid #ddd;
+  cursor: pointer; transition: 0.2s; min-width: 60px;
+}
+.meal-options label:hover { background: #eef6ff; border-color: #80bfff; }
+
+/* モード切替 */
+.mode-switch { display: flex; gap: 18px; margin: 10px 0 6px; }
+
+/* ==== 献立表示エリア ==== */
+#menuResults { display: grid;
+grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); /* 幅に応じて2～3列 */
+gap: 24px;
+margin-top: 20px;}
+
+/* 日ごとのカード */
+.menu-card {
+  background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: 0.2s; overflow: visible;
+}
+.menu-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+.menu-card h3 {
+  margin: 0 0 12px; font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px;
+}
+
+/* 朝昼夕の3カラム */
+.meals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 820px) { .meals-grid { grid-template-columns: repeat(2, 1fr)); } }
+@media (max-width: 520px) { .meals-grid { grid-template-columns: 1fr; } }
+
+.meal-col { background: #f9fbff; border: 1px solid #dbe7ff; border-radius: 10px; padding: 10px 12px; }
+.meal-col h4 { margin: 0 0 6px; color: #2a5fbf; }
+.meal-col ul { margin: 0; padding-left: 18px; }
+.meal-col li a { text-decoration: none; color: #333;　display: block; word-break: break-word; white-space: normal; }
+.meal-col li a:hover { color: #1976d2; }
+
+/* 日別の栄養チップ */
+.day-nutri { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.nutri-chip { background: #eef6ff; border: 1px solid #cfe3ff; border-radius: 999px; padding: 4px 10px; font-size: 12px; color: #245; }
+
+/* ==== 買い物リスト ==== */
+.shopping-category { margin-bottom: 1rem; list-style: none; padding: 0; border-left: 6px solid #ddd; background:#fff; border-radius:10px; }
+.shopping-category h4 { margin: 0; padding: 8px 10px; cursor: pointer; color:#fff; border-top-right-radius:10px; }
+.shopping-category ul { list-style: none; padding: 8px 10px 10px; margin: 0; transition: max-height 0.3s ease, opacity 0.3s ease; overflow: hidden; }
+.shopping-category ul.collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+.shopping-category ul:not(.collapsed) { max-height: 500px; opacity: 1; }
+
+.shopping-item { display: flex; align-items: center; padding: 4px 0; gap: 8px; cursor: pointer; }
+.shopping-item input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+.shopping-item span { flex: 1; font-size: 0.95em; }
+.shopping-item.checked span { text-decoration: line-through; opacity: 0.6; }
+
+/* カテゴリ色 */
+.category-veg  { background-color: #4CAF50; }
+.category-meat { background-color: #E57373; }
+.category-grain{ background-color: #FFB74D; }
+.category-cond { background-color: #64B5F6; }
+.category-other{ background-color: #BA68C8; }
+
+/* ==== モーダル（レシピ） ==== */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: #fff; max-width: 640px; width: 92%; border-radius: 12px; padding: 16px 18px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-close { position: absolute; right: 10px; top: 8px; border: none; background: transparent; font-size: 22px; cursor: pointer; }
+.nutri-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.nutri-chips .chip { background:#f1fff4; border:1px solid #cde9d6; color:#225; border-radius:999px; padding:3px 8px; font-size:12px; }
+/* 栄養チップ */
+.nutri-chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.chip { padding:4px 8px; border-radius:999px; font-size:12px; background:#eef1f6; }
+.chip-kcal { background:#ffe9e9; }
+.chip-protein { background:#e9f7ff; }
+.chip-veg { background:#e9ffef; }
+.chip-note { background:#f3e9ff; }
+
+/* 食事横並び（小さめ画面は折返し） */
+.meal-row { display:flex; gap:10px; flex-wrap:wrap; }
+.meal-card { flex: 1 1 200px; display:flex; flex-direction:column; gap:6px; }
+.meal-title { font-weight:700; color:#3b6ea8; }
+.dish-link { text-decoration:none; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* レシピモーダル */
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.modal-content { background:#fff; max-width:680px; width:92%; max-height:80vh; overflow:auto; border-radius:12px; padding:16px 20px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+.modal-close { position:sticky; top:0; left:100%; transform:translateX(-100%); border:none; background:#eee; border-radius:50%; width:32px; height:32px; cursor:pointer; }
+.recipe-btn { align-self:flex-start; padding:6px 10px; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer; }
+.recipe-btn:hover { background:#f5f7fa; }
+.dish-btn {
+  all: unset;
+  cursor: pointer;
+  color: #1a73e8;
+}
+.dish-btn:hover { text-decoration: underline; }
+.dish-btn:disabled { opacity: .6; cursor: not-allowed; }
+.menu-toolbar .btn-outline{
+  padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;
+}
+.menu-toolbar .btn-outline:hover{ background:#f6f6f6; }
+.day-regen{ padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;margin:6px 0 12px; }
+.day-regen:hover{ background:#f6f6f6; }
+.day-extra-shopping details{ margin-top:8px; }
+.dish-btn{ all:unset; cursor:pointer; color:#1a73e8; }
+.dish-btn:hover{ text-decoration:underline; }
