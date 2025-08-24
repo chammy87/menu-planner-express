@@ -1,13 +1,13 @@
 {
   "name": "menu-planner-express",
   "type": "module",
-  "engines": { "node": "20.x" },          // ← Node 20 を要求（Render に伝わる）
+  "engines": { "node": "20.x" },          
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",                  // ← 存在する最新版系に修正
+    "dotenv": "^16.4.5",                  
     "express": "^4.19.2",
     "openai": "^5.11.0"
   }
