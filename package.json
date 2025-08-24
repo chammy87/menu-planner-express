@@ -1,17 +1,14 @@
 {
-  "name": "menu-app",
-  "version": "1.0.0",
+  "name": "menu-planner-express",
   "type": "module",
-  "main": "index.js",
+  "engines": { "node": "20.x" },          // ← Node 20 を要求（Render に伝わる）
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.5",                  // ← 存在する最新版系に修正
     "express": "^4.19.2",
-    "openai": "^4.57.0"
-  },
-  "engines": { "node": ">=18" }
+    "openai": "^5.11.0"
+  }
 }
