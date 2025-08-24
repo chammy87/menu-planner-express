@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>レシピ提案AI</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .toggle-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      background-color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn.active {
+      background-color: #8bc34a;
+      color: white;
+      border-color: #8bc34a;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-horizontal">
+    <div class="speech-bubble">今日のごはん<br />一緒に考えよう！</div>
+    <img src="/public/ferret_chef.png" alt="フェレットシェフ" class="ferret-image" />
+  </div>
+
+  <h1>きょうのごはん何にする？</h1>
+
+  <form id="recipeForm">
+    <label>食材（カンマ区切り）</label>
+    <input type="text" id="ingredients" placeholder="例：キャベツ、卵、にんじん" />
+
+    <label>入力した食材を使用する料理：</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="useIn" value="main" checked> 主菜</label>
+      <label><input type="checkbox" name="useIn" value="side" checked> 副菜</label>
+      <label><input type="checkbox" name="useIn" value="soup" checked> 汁物</label>
+    </div>
+
+    <label>👶 幼児（0〜5歳）：</label>
+    <input type="number" id="toddlers" value="0" min="0" /><br>
+
+    <label>🧒 小学生（6〜12歳）：</label>
+    <input type="number" id="kids" value="0" min="0" /><br>
+
+    <label>👩‍🦰 大人（13歳以上）：</label>
+    <input type="number" id="adults" value="2" min="0" /><br>
+
+    <label>子ども向けメニュー希望</label>
+    <select id="wantKidsMenu">
+      <option value="はい">はい</option>
+      <option value="いいえ">いいえ</option>
+    </select>
+
+    <label>ジャンル（和食、洋食など）</label>
+    <input type="text" id="genre" placeholder="例：洋食"/>
+
+    <label>要望（調理方法など）</label>
+    <input type="text" id="request" placeholder="例：時短、行程が少ない" />
+
+    <label>避けたい食材</label>
+    <input type="text" id="avoid" placeholder="例：乳製品、ピーマン" />
+
+    <label>提案タイプ：</label>
+    <div class="toggle-buttons">
+      <button type="button" class="toggle-btn active" data-value="recipe">🍳 単品レシピ</button>
+      <button type="button" class="toggle-btn" data-value="menu">🍽️ 1食の献立</button>
+    </div>
+    <input type="hidden" name="menuType" id="menuType" value="recipe" />
+
+    <button class="btn" type="submit">レシピを提案してもらう</button>
+  </form>
+
+  <div id="loading" style="display: none;">レシピを考え中です...</div>
+
+  <div id="result" class="result-box"></div>
+
+  <!-- お気に入り機能ボタン -->
+  <div class="button-container">
+    <button id="addFavoriteBtn" class="yellow-button">⭐ お気に入りに追加</button>
+    <button id="showFavoritesBtn" class="blue-button">📚 お気に入りを見る</button>
+  </div>
+
+  <!-- お気に入り一覧表示エリア -->
+  <div id="favoriteList" style="display: none;"></div>
+
+  <div style="margin-top: 20px;">
+    <button id="retryBtn" style="display: none;">もう一度</button>
+    <button id="showHistoryBtn" style="display: none;">過去のレシピを見る</button>
+  </div>
+
+  <div id="historyContainer" style="display: none; margin-top: 20px;"></div>
+
+  <!-- ボタン切り替えスクリプト -->
+  <script>
+    const buttons = document.querySelectorAll('.toggle-btn');
+    const hiddenInput = document.getElementById('menuType');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const value = btn.getAttribute('data-value');
+        hiddenInput.value = value;
+      });
+    });
+  </script>
+
+  <!-- レシピ提案ロジック -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.getElementById("recipeForm");
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        getRecipe(); // script.js 側で定義されている関数
+      });
+    });
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>

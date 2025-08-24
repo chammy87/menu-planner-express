@@ -1,0 +1,377 @@
+/* 全体レイアウト調整 */
+body {
+  font-family: "Helvetica Neue", sans-serif;
+  background: #f2f1ee;
+  margin: 0;
+  padding: 20px;
+}
+
+/* アプリ本体 */
+.app-container {
+  max-width: 420px;
+  margin: 24px auto;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 24px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ラベル */
+label {
+  display: block;
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #444;
+}
+
+/* 入力フォーム */
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+
+/* ボタン共通スタイル */
+button, .btn {
+  width: 100%;
+  background-color: #88b04b;
+  color: white;
+  padding: 14px;
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover, .btn:hover {
+  background-color: #729f3f;
+}
+
+button:active, .btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* 結果表示エリア */
+.result {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f6f6f6;
+  border-radius: 12px;
+  font-size: 15px;
+  white-space: pre-wrap;
+  color: #444;
+  line-height: 1.6;
+  border: 1px solid #ddd;
+}
+
+/* ローディングスピナー */
+.loading {
+  display: block;
+  margin: 20px auto;
+  border: 6px solid #eee;
+  border-top: 6px solid #88b04b;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.8s linear infinite;
+}
+
+/* スピナーアニメーション */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* レスポンシブ調整 */
+@media screen and (max-width: 480px) {
+  .app-container {
+    margin: 12px 12px;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  label {
+    font-size: 14px;
+  }
+
+  input, select, textarea {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  button, .btn {
+    font-size: 15px;
+    padding: 12px;
+  }
+
+  .result {
+    font-size: 14px;
+    padding: 14px;
+  }
+}
+.history-container {
+  margin-top: 24px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+}
+
+.history-entry {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.history-entry:hover {
+  background: #f0f0f0;
+}
+
+.history-time {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.history-recipe {
+  font-size: 14px;
+  color: #333;
+  white-space: pre-wrap;
+}
+h1 {
+  font-size: 24px;
+  color: #5b5b5b;
+  text-align: center;
+  margin-bottom: 24px;
+  font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
+  letter-spacing: 0.05em;
+}
+/* ★ 背景の白枠を削除 → header-horizontalに背景やpaddingを指定しない */
+.header-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* フェレット画像サイズ */
+.ferret-image {
+  width: 120px;
+  height: auto;
+}
+
+/* 吹き出しスタイル */
+.speech-bubble {
+  position: relative;
+  background: #fff8dc;
+  border: 2px solid #ccc;
+  border-radius: 15px;
+  padding: 10px 15px;
+  font-size: 1rem;
+  max-width: 220px;
+  text-align: center;
+}
+
+/* 吹き出しの矢印（→フェレット側） */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  margin-top: -6px;
+  border-width: 6px 0 6px 12px;
+  border-style: solid;
+  border-color: transparent transparent transparent #fff8dc;
+}
+.toggle-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  background-color: #fff;
+  color: #333; /* ← 追加：非アクティブ時の文字色 */
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background-color: #8bc34a;
+  color: white; /* ← アクティブ時は白文字で強調 */
+  border-color: #8bc34a;
+}
+.checkbox-group {
+  display: flex;
+  gap: 15px;
+  margin: 5px 0 15px;
+}
+.checkbox-group label {
+  font-size: 15px;
+  cursor: pointer;
+}
+/* スマホ向け調整 */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  input[type="text"],
+  select,
+  textarea {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  #result, .history-entry {
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .history-entry {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+  }
+}
+.recipe-card {
+  background: #fffdf0;
+  border: 2px solid #ffcf91;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 20px auto; /* ← 上下20px、左右autoで中央寄せ */
+  box-shadow: 0 2px 8px rgba(255, 179, 71, 0.2);
+  font-family: 'Arial', sans-serif;
+  white-space: normal;
+  max-width: 600px; /* ← 幅を制限 */
+  box-sizing: border-box;
+}
+@media screen and (max-width: 640px) {
+  .recipe-card {
+    padding: 12px;
+    margin: 16px;
+    max-width: 90%;
+  }
+}
+.recipe-card h3 {
+  margin-top: 0;
+  color: #4CAF50;
+}
+
+.recipe-section {
+  margin-bottom: 16px;
+}
+
+.recipe-section-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: #333;
+}
+
+.recipe-section ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.recipe-section ul li::before {
+  content: "・";
+  margin-right: 6px;
+  color: #4caf50;
+}
+
+.recipe-card pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  font-family: "Arial", sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+.favorite-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.yellow-button,
+.blue-button {
+  max-width: 250px;
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.yellow-button {
+  background-color: #fff8dc;
+  border-color: #ffd966;
+  color: #4a4a4a;
+}
+
+.blue-button {
+  background-color: #e6f3ff;
+  border-color: #99c2ff;
+  color: #1c3b82;
+}
+
+#favoriteList {
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+}
+.recipe-card pre {
+  white-space: pre-wrap;     /* 改行保持しつつ折り返し */
+  word-break: break-word;    /* 長い単語も折り返す */
+  font-family: inherit;      /* 見た目を整える */
+}
