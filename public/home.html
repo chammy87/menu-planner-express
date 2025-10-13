@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ごはんアプリ | レシピ or 献立</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--text:#111;--muted:#667085;--accent:#4f46e5;}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:system-ui, -apple-system, "Segoe UI", Roboto;}
+    .wrap{max-width:980px;margin:40px auto;padding:0 16px}
+    h1{font-size:clamp(24px,3vw,34px);margin:0 0 14px}
+    p.lead{color:var(--muted);margin:0 0 28px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .card{background:var(--card);border-radius:14px;padding:22px;box-shadow:0 10px 24px rgba(0,0,0,.05);display:flex;flex-direction:column}
+    .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#3b82f6;background:#eff6ff;padding:4px 8px;border-radius:999px;margin-bottom:10px}
+    .title{font-weight:700;font-size:20px;margin:2px 0 6px}
+    .desc{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 14px}
+    .go{margin-top:auto;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:var(--text);text-decoration:none}
+    .go.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .foot{margin-top:18px;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>きょうのごはん、どうする？</h1>
+    <p class="lead">プレミアム会員向け：1つの入り口から「献立プランナー」または「単品レシピ」を選べます。</p>
+
+    <div class="grid">
+      <article class="card">
+        <span class="badge">📅 献立アプリ</span>
+        <div class="title">1〜7日分の献立を自動作成</div>
+        <p class="desc">家族人数・苦手食材・リクエストを入れるだけ。買い物リストも自動生成。</p>
+        <a class="go primary" href="/menu">開く（献立プランナー） →</a>
+      </article>
+
+      <article class="card">
+        <span class="badge">🍳 レシピアプリ</span>
+        <div class="title">食材から単品レシピを提案</div>
+        <p class="desc">「キャベツ、卵」など手持ち食材で検索。分量・手順まで一発生成。</p>
+        <a class="go" href="/recipe">開く（単品レシピ） →</a>
+      </article>
+    </div>
+
+    <div class="foot">ショートカット: <a href="/menu">/menu</a> ・ <a href="/recipe">/recipe</a></div>
+  </div>
+</body>
+</html>
