@@ -11,14 +11,13 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
 
-// これを置く
+// ✅ static は1回だけ。/ で home.html を返したいので index:false
 app.use(express.static("public", { index: false }));
 
-// 追加：ホーム/ショートカットのルーティング
+/* ---------- ホーム & ショートカット ---------- */
 app.get("/", (_req, res) => {
-  // public/home.html があればホーム、なければ既存 index.html（献立）へ
+  // public/home.html があればそれ、無ければ index.html（献立）へ
   res.sendFile("home.html", { root: "public" }, (err) => {
     if (err) res.sendFile("index.html", { root: "public" });
   });
