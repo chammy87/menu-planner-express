@@ -13,6 +13,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
+// これを置く
+app.use(express.static("public", { index: false }));
+
 // 追加：ホーム/ショートカットのルーティング
 app.get("/", (_req, res) => {
   // public/home.html があればホーム、なければ既存 index.html（献立）へ
