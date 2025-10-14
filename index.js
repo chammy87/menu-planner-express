@@ -20,7 +20,7 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '1mb' })); // JSONサイズ制限
+app.use(express.json({ limit: '1mb' }));
 
 // ✅ static は1回だけ。/ で home.html を返したいので index:false
 app.use(express.static("public", { index: false }));
@@ -43,7 +43,7 @@ if (!process.env.OPENAI_API_KEY) {
 }
 const client = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 60000, // 60秒タイムアウト
+  timeout: 60000,
   maxRetries: 2
 });
 
@@ -79,7 +79,6 @@ const ingredientCategories = {
   },
 };
 
-// 主食は同日重複OK
 const stapleFoods = [
   "ご飯","白米","玄米","ライス",
   "パン","食パン","トースト","サンドイッチ","ホットサンド",
@@ -87,10 +86,8 @@ const stapleFoods = [
   "おにぎり","チャーハン","焼きそば","グラノーラ"
 ];
 
-// 料理語（1語名詞を避けるための判定に使用）
 const cookWordRe = /(焼|炒|煮|蒸|揚|和え|漬|茹|炊|混|とじ|オムレツ|グラタン|カレー|チャーハン|丼|定食|サンド|トースト|パスタ|スパゲ|うどん|そば|ラーメン|粥|雑炊|おにぎり|味噌汁|スープ)/;
 
-// エイリアス → 正規化
 const aliases = {
   "鶏": "鶏肉",
   "豚": "豚肉",
@@ -108,14 +105,10 @@ const canon = (t = "") => aliases[t] || t;
 const normalize = (s) =>
   String(s || "").trim().toLowerCase().replace(/\s+/g, "").replace(/[（）()　]/g, "");
 
-// 改善版：より堅牢なJSON抽出
 function extractFirstJson(text) {
   text = String(text || "").trim();
-  
-  // コードフェンスを削除
   text = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "");
   
-  // 最初の { から最後の } までを抽出（ネストに対応）
   let depth = 0;
   let start = -1;
   let end = -1;
@@ -137,13 +130,11 @@ function extractFirstJson(text) {
     return text.slice(start, end + 1);
   }
   
-  // フォールバック：元の方法
   const i = text.indexOf("{");
   const j = text.lastIndexOf("}");
   return (i >= 0 && j > i) ? text.slice(i, j + 1) : text;
 }
 
-// OpenAI呼び出し（エラーハンドリング強化）
 async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
   let lastError;
   
@@ -173,7 +164,6 @@ async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
       lastError = error;
       console.error(`❌ OpenAI API error (attempt ${attempt}):`, error.message);
       
-      // レート制限エラーの場合は待機
       if (error?.status === 429) {
         const waitTime = Math.min(2000 * attempt, 10000);
         console.log(`⏳ Rate limited, waiting ${waitTime}ms...`);
@@ -181,14 +171,12 @@ async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
         continue;
       }
       
-      // タイムアウトやネットワークエラーの場合は再試行
       if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNRESET') {
         console.log(`⏳ Network error, retrying...`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
       
-      // その他のエラーは即座に失敗
       if (attempt === maxRetries) {
         throw error;
       }
@@ -198,16 +186,13 @@ async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
   throw lastError || new Error("OpenAI API call failed after retries");
 }
 
-// 名詞1語か？
 const isGenericName = (name = "") => {
   const n = String(name).trim();
   return !!n && /^[^\s]+$/.test(n) && !cookWordRe.test(n);
 };
 
-// 正規表現エスケープ
 const escapeReg = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// 変な組み合わせ矯正（改善版）
 function sanitizeMeal(name = "", mealType = "") {
   let n = String(name || "").replace(/\s+/g, " ").trim();
   
@@ -222,7 +207,6 @@ function sanitizeMeal(name = "", mealType = "") {
     n = "ほうれん草の卵とじ";
   }
 
-  // 昼食の主食チェック
   if (mealType === "昼食") {
     const hasStaple = /(ご飯|ライス|丼|パン|サンド|トースト|うどん|そば|そうめん|パスタ|スパゲッティ|スパゲティ|ラーメン|焼きそば|チャーハン|麺)/.test(n);
     if (!hasStaple) {
@@ -230,7 +214,6 @@ function sanitizeMeal(name = "", mealType = "") {
     }
   }
 
-  // 夕食の主菜チェック
   if (mealType === "夕食") {
     const hasProtein = /(鶏|豚|牛|鮭|鯖|タラ|サワラ|魚|卵|豆腐|厚揚げ|ツナ)/.test(n);
     if (!hasProtein) {
@@ -238,14 +221,12 @@ function sanitizeMeal(name = "", mealType = "") {
     }
   }
 
-  // 朝食の1語対策
   if (mealType === "朝食") {
     if (/^[^\s]+$/.test(n) && !/(汁|スープ|丼|サンド|トースト|粥|雑炊)/.test(n)) {
       n = `${n}の卵とじ`;
     }
   }
 
-  // 矛盾した組み合わせの修正
   n = n.replace(/(鮭|鯖|タラ|サワラ)の油揚げ/g, "$1の塩焼き");
   n = n.replace(/(スパゲ(?:ッティ|ティ)?|パスタ)[^、。]*?とご飯/g, "$1");
   n = n.replace(/(サンド[イィ]ッチ|トースト)[^、。]*?とご飯/g, "$1");
@@ -294,10 +275,8 @@ function filterMenu(menu) {
       for (const t0 of splitTokens(dish)) {
         const t = canon(t0);
         
-        // 主食はスキップ
         if (stapleFoods.some(k => t.includes(k))) continue;
         
-        // 重複チェックと置換
         if (usedToday.has(t) || prevDaySet.has(t)) {
           const rep = getReplacement(t);
           if (rep && rep !== t) {
@@ -311,7 +290,6 @@ function filterMenu(menu) {
       mealsOut[meal] = dish;
     }
 
-    // 前日のセットを更新（主食は除外）
     prevDaySet = new Set(
       [...usedToday].filter(t => !stapleFoods.some(k => t.includes(k)))
     );
@@ -330,7 +308,6 @@ const ingredientToCategory = (() => {
     .forEach(k => (map[k] = "肉・魚・卵・乳製品"));
   stapleFoods.forEach(k => (map[k] = "穀物・麺類・パン"));
   
-  // エイリアス
   map["鶏"] = "肉・魚・卵・乳製品";
   map["豚"] = "肉・魚・卵・乳製品";
   map["牛"] = "肉・魚・卵・乳製品";
@@ -342,7 +319,7 @@ const ingredientToCategory = (() => {
 })();
 
 /* ===========================
-   料理名から既知食材を検出（改善版）
+   料理名から既知食材を検出
 =========================== */
 const BOUNDARY = "[^\\u4E00-\\u9FFF\\u3040-\\u309F\\u30A0-\\u30FFA-Za-z0-9]";
 
@@ -357,7 +334,6 @@ function detectCoreIngredients(name = "") {
     "鶏","豚","牛","卵","豆腐","厚揚げ","油揚げ","鮭","鯖","タラ","サワラ","ツナ",
   ]);
 
-  // 長い単語から優先的にマッチ（誤検出防止）
   const sortedKeys = [...keys].sort((a, b) => b.length - a.length);
 
   for (const k of sortedKeys) {
@@ -371,13 +347,9 @@ function detectCoreIngredients(name = "") {
     }
   }
 
-  // 誤検出の後処理
   if (src.includes("牛乳")) found.delete("牛肉");
   if (src.includes("鶏ガラ")) found.delete("鶏肉");
   if (src.includes("豚骨")) found.delete("豚肉");
-  if (src.includes("卵白") || src.includes("卵黄")) {
-    // 「卵白」「卵黄」は卵として扱う
-  }
 
   return [...found];
 }
@@ -395,31 +367,46 @@ function stripAvailableFromShoppingList(shoppingList, availableList) {
       .filter(x => x.length >= 2)
   );
   
+  console.log("🔍 除外する食材（正規化後）:", [...avail]);
+  
   const out = {};
+  let removedCount = 0;
+  
   for (const [cat, items] of Object.entries(shoppingList)) {
     out[cat] = (items || []).filter(x => {
       const n = normalize(x);
-      // 部分一致でフィルタ
-      for (const a of avail) {
-        if (a && n.includes(a)) return false;
+      
+      if (avail.has(n)) {
+        removedCount++;
+        console.log(`  ❌ 除外: ${x} (完全一致)`);
+        return false;
       }
+      
+      for (const a of avail) {
+        if (a && (n.includes(a) || a.includes(n))) {
+          removedCount++;
+          console.log(`  ❌ 除外: ${x} (部分一致: ${a})`);
+          return false;
+        }
+      }
+      
       return true;
     });
   }
   
+  console.log(`📊 ${removedCount}個の食材を買い物リストから除外しました`);
+  
   return out;
 }
 
-// 主食トークン抽出
 function pickStapleFrom(token = "") {
   return stapleFoods.find(k => token.includes(k)) || null;
 }
 
-// 主たんぱく質の正規化
 function normalizeProteinToken(token = "") {
   if (/鶏|チキン/.test(token)) return "鶏肉";
-  if (/豚(?!骨)/.test(token)) return "豚肉"; // 豚骨を除外
-  if (/牛(?!乳)/.test(token)) return "牛肉"; // 牛乳を除外
+  if (/豚(?!骨)/.test(token)) return "豚肉";
+  if (/牛(?!乳)/.test(token)) return "牛肉";
   if (/鮭|サーモン/.test(token)) return "鮭";
   if (/鯖|サバ|さば/.test(token)) return "鯖";
   if (/タラ/.test(token)) return "タラ";
@@ -432,7 +419,6 @@ function normalizeProteinToken(token = "") {
   return null;
 }
 
-// メニューから買い物リスト復元
 function ensureShoppingFromMenu(menu = [], shopping = {}) {
   const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
   cats.forEach(c => (shopping[c] = Array.isArray(shopping[c]) ? shopping[c] : []));
@@ -476,7 +462,7 @@ function ensureShoppingFromMenu(menu = [], shopping = {}) {
 }
 
 /* ===========================
-   プロンプト（簡潔＆強制条件）
+   プロンプト
 =========================== */
 function buildPrompt({ toddlers, kids, adults, days, meals = [], avoid, request, available, avoidRecent = [] }) {
   const mealsLine = meals.length ? meals.join("、") : "朝食、昼食、夕食";
@@ -547,7 +533,6 @@ app.post("/generate-menu", async (req, res, next) => {
   try {
     console.log("📝 献立生成リクエスト受信");
     
-    // バリデーション
     const validationErrors = validateMenuRequest(req.body);
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -568,6 +553,13 @@ app.post("/generate-menu", async (req, res, next) => {
       avoidRecent = []
     } = req.body;
 
+    const availableList = String(available || "")
+      .split(/[、,]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    
+    console.log("📦 家にある食材:", availableList);
+
     const prompt = buildPrompt({
       toddlers,
       kids,
@@ -576,7 +568,7 @@ app.post("/generate-menu", async (req, res, next) => {
       meals,
       avoid,
       request,
-      available,
+      available: availableList.join('、'),
       avoidRecent
     });
 
@@ -594,7 +586,6 @@ app.post("/generate-menu", async (req, res, next) => {
       json = JSON.parse(raw);
     }
 
-    // 栄養の穴埋め
     json.menu = (json.menu || []).map(d => {
       const n = d.nutrition || {};
       return {
@@ -608,7 +599,6 @@ app.post("/generate-menu", async (req, res, next) => {
       };
     });
 
-    // 料理名の矯正
     json.menu = (json.menu || []).map(d => {
       const out = { ...d, meals: { ...(d.meals || {}) } };
       ["朝食","昼食","夕食"].forEach(m => {
@@ -619,8 +609,162 @@ app.post("/generate-menu", async (req, res, next) => {
       return out;
     });
 
-    // 最終フィルタ（同日/前日重複）
     json.menu = filterMenu(json.menu);
 
-    // availableList
-    const availableList = String(available || "
+    json.availableList = availableList;
+    
+    console.log("📦 設定されたavailableList:", json.availableList);
+
+    json.shoppingList = stripAvailableFromShoppingList(
+      json.shoppingList || {},
+      availableList
+    );
+    
+    json.shoppingList = ensureShoppingFromMenu(json.menu, json.shoppingList);
+    
+    json.shoppingList = stripAvailableFromShoppingList(
+      json.shoppingList,
+      availableList
+    );
+
+    const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
+    for (const c of cats) {
+      const arr = Array.isArray(json.shoppingList[c]) ? json.shoppingList[c] : [];
+      json.shoppingList[c] = [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+      json.shoppingList[c].sort((a, b) => a.localeCompare(b, 'ja'));
+    }
+
+    console.log("✅ 買い物リスト生成完了");
+    console.log("   カテゴリ別アイテム数:", 
+      Object.fromEntries(cats.map(c => [c, json.shoppingList[c].length]))
+    );
+
+    res.json(json);
+    
+  } catch (e) {
+    console.error("❌ 献立生成エラー:", e);
+    next(e);
+  }
+});
+
+/* ===========================
+   API: レシピ生成
+=========================== */
+app.post("/generate-recipe", async (req, res, next) => {
+  try {
+    const { dish, toddlers = 0, kids = 0, adults = 2, mode = "standard" } = req.body;
+    const portions = Number(adults) + Number(kids) * 0.7 + Number(toddlers) * 0.5;
+    const servings = Math.max(2, Math.round(portions));
+
+    const cleanDish = (name = "") =>
+      String(name).replace(/[•●・\-]/g, "").replace(/\s+/g, " ").replace(/^\s*・?\s*/, "").trim();
+    const normalizeDish = (name = "") => {
+      let n = cleanDish(name) || "鶏の照り焼き";
+      if (/^(豆腐)$/i.test(n)) n = "豆腐ステーキ";
+      if (/^(サラダ)$/i.test(n)) n = "チキンサラダ";
+      if (/^(卵|納豆)$/i.test(n)) n = `${n}チャーハン`;
+      if (/サラダ$/.test(n) && !/(サンド|丼|定食|パスタ|うどん|そば|ラーメン|ご飯|ライス)/.test(n)) n = n.replace(/サラダ$/, "サラダサンド");
+      return n;
+    };
+    const safeDish = normalizeDish(dish);
+
+    const prompt = `
+日本の家庭料理のレシピを厳密JSONで返してください。説明禁止。
+
+【料理名】${safeDish}
+【分量】約${servings}人前
+【モード】${mode === "economy" ? "節約" : mode === "quick" ? "時短" : "標準"}
+
+{
+  "title": "料理名",
+  "servings": ${servings},
+  "ingredients": ["具体食材 量", "..."],
+  "seasonings": ["調味料 量", "..."],
+  "steps": ["手順1", "..."],
+  "tips": ["コツ1", "..."],
+  "nutrition_per_serving": { "kcal": 0, "protein_g": 0 }
+}`.trim();
+
+    let content = await callModel(prompt, { temperature: 0.6 });
+    let raw = extractFirstJson(content);
+    let json;
+    
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      const retry = prompt + "\n\n【重要】JSONのみを厳密に出力。";
+      content = await callModel(retry, { temperature: 0.3 });
+      raw = extractFirstJson(content);
+      json = JSON.parse(raw);
+    }
+
+    res.json(json);
+  } catch (e) {
+    console.error("レシピ生成エラー:", e);
+    next(e);
+  }
+});
+
+/* ===========================
+   API: 買い物リスト再計算
+=========================== */
+app.post("/recalc-shopping", async (req, res, next) => {
+  try {
+    console.log("🔄 買い物リスト再計算リクエスト");
+    
+    const { menu = [], available = "" } = req.body;
+    
+    const availableList = String(available)
+      .split(/[、,]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    
+    console.log("📦 家にある食材:", availableList);
+
+    let shopping = ensureShoppingFromMenu(menu, {});
+    
+    shopping = stripAvailableFromShoppingList(shopping, availableList);
+
+    const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
+    for (const c of cats) {
+      const arr = Array.isArray(shopping[c]) ? shopping[c] : [];
+      shopping[c] = [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+      shopping[c].sort((a, b) => a.localeCompare(b, 'ja'));
+    }
+    
+    console.log("✅ 買い物リスト再計算完了");
+    console.log("   カテゴリ別アイテム数:", 
+      Object.fromEntries(cats.map(c => [c, shopping[c].length]))
+    );
+    
+    res.json({ 
+      shoppingList: shopping, 
+      availableList: availableList 
+    });
+    
+  } catch (e) {
+    console.error("❌ 買い物リスト再計算エラー:", e);
+    next(e);
+  }
+});
+
+/* ===========================
+   エラーハンドラ
+=========================== */
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  console.error("💥 Unhandled error:", err);
+  res.status(500).json({ 
+    error: "internal_error", 
+    detail: String(err?.message || err) 
+  });
+});
+
+/* ===========================
+   サーバー起動
+=========================== */
+app.listen(port, () => {
+  console.log(`✅ Server running on http://localhost:${port}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   OpenAI API: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+});
