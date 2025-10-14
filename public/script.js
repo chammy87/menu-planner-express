@@ -9,9 +9,15 @@ let checkedItems = new Set(); // チェック済み買い物リスト項目
 // --- 共通fetch（JSON強制 & HTML誤返却を可視化 & 連打中断） ---
 async function fetchJSON(url, options = {}, timeoutMs = 60000) {
   const controller = new AbortController();
-  // 直前のリクエストを中断（再生成/再考案ボタン連打対策）
-  if (inFlight) inFlight.abort();
+  
+  // ★ 修正：直前のリクエストがあれば中断（ただし新しいリクエストは続行）
+  const previousFlight = inFlight;
   inFlight = controller;
+  
+  if (previousFlight && previousFlight !== controller) {
+    console.log('⚠️ 前のリクエストを中断します');
+    previousFlight.abort();
+  }
 
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -25,6 +31,13 @@ async function fetchJSON(url, options = {}, timeoutMs = 60000) {
       throw new Error(`Expected JSON but got "${ct}"\n${body.slice(0, 400)}`);
     }
     return JSON.parse(body);
+  } catch (error) {
+    // ★ AbortErrorは通常のエラーとして処理しない
+    if (error.name === 'AbortError') {
+      console.log('🚫 リクエストが中断されました');
+      throw error;
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
     if (inFlight === controller) inFlight = null;
