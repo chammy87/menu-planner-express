@@ -337,6 +337,24 @@ setTimeout(() => {
     console.error("❌ Button not found!");
   }
 }, 1000);
+
+// 強制的に献立エリアを表示
+setTimeout(() => {
+  const menuResults = document.getElementById('menuResults');
+  if (menuResults) {
+    menuResults.style.display = 'block';
+    menuResults.style.visibility = 'visible';
+    menuResults.style.opacity = '1';
+    console.log('📍 menuResults強制表示:', menuResults.children.length, '個の要素');
+    
+    // すべての子要素も表示
+    Array.from(menuResults.children).forEach((child, i) => {
+      child.style.display = 'block';
+      child.style.visibility = 'visible';
+      console.log(`  要素${i}:`, child.className, child.tagName);
+    });
+  }
+}, 2000); // 2秒後に実行
 </script>
 </body>
 </html>
