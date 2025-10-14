@@ -161,5 +161,21 @@
   </div>
 
   <script src="script.js"></script>
+  <!-- index.htmlの最後、</body>の直前に追加 -->
+<script>
+console.log("Script loaded");
+console.log("generateBtn exists:", !!document.getElementById("generateBtn"));
+console.log("menuResults exists:", !!document.getElementById("menuResults"));
+
+// テスト実行
+setTimeout(() => {
+  const btn = document.getElementById("generateBtn");
+  if (btn) {
+    console.log("✅ Button found, listeners:", btn);
+  } else {
+    console.error("❌ Button not found!");
+  }
+}, 1000);
+</script>
 </body>
 </html>
