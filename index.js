@@ -759,6 +759,107 @@ app.use((err, req, res, next) => {
     detail: String(err?.message || err) 
   });
 });
+/* ===========================
+   API: 単品レシピ提案（recipe.html用）
+=========================== */
+app.post("/recipe", async (req, res, next) => {
+  try {
+    console.log("🍳 レシピ提案リクエスト受信");
+    
+    const {
+      ingredients,
+      useIn = [],
+      toddlers = 0,
+      kids = 0,
+      adults = 2,
+      wantKidsMenu = "いいえ",
+      genre = "",
+      request = "",
+      avoid = "",
+      menuType = "recipe",
+      mainDish = false,
+      sideDish = false,
+      soup = false
+    } = req.body;
+
+    const portions = Number(adults) + Number(kids) * 0.7 + Number(toddlers) * 0.5;
+    const servings = Math.max(2, Math.round(portions));
+
+    let prompt = "";
+
+    if (menuType === "menu") {
+      // 1食の献立
+      prompt = `
+【1食分の献立提案】
+食材: ${ingredients}
+人数: 幼児${toddlers}人、小学生${kids}人、大人${adults}人
+子ども向け: ${wantKidsMenu}
+ジャンル: ${genre || "指定なし"}
+要望: ${request || "なし"}
+避けたい: ${avoid || "なし"}
+
+主菜・副菜・汁物のバランスの取れた1食分の献立を提案してください。
+各料理の簡単な作り方も含めてください。
+
+【出力形式】
+■ 主菜: 料理名
+材料: ...
+作り方: ...
+
+■ 副菜: 料理名
+材料: ...
+作り方: ...
+
+■ 汁物: 料理名
+材料: ...
+作り方: ...
+`.trim();
+
+    } else {
+      // 単品レシピ
+      const useInText = useIn.length > 0 
+        ? `（${useIn.map(x => x === 'main' ? '主菜' : x === 'side' ? '副菜' : '汁物').join('・')}で使用）` 
+        : '';
+      
+      prompt = `
+【レシピ提案】
+食材: ${ingredients} ${useInText}
+人数: 約${servings}人前
+子ども向け: ${wantKidsMenu}
+ジャンル: ${genre || "指定なし"}
+要望: ${request || "なし"}
+避けたい: ${avoid || "なし"}
+
+上記の食材を使った${servings}人前のレシピを1つ提案してください。
+
+【出力形式】
+■ 料理名: ○○○○
+
+■ 材料（${servings}人前）
+- 食材名: 分量
+- ...
+
+■ 作り方
+1. 手順1
+2. 手順2
+...
+
+■ ポイント
+- コツやアレンジ案
+`.trim();
+    }
+
+    const content = await callModel(prompt, { temperature: 0.7 });
+    
+    console.log("✅ レシピ提案生成完了");
+    
+    res.json({ recipe: content });
+    
+  } catch (e) {
+    console.error("❌ レシピ提案エラー:", e);
+    next(e);
+  }
+});
 
 /* ===========================
    サーバー起動
