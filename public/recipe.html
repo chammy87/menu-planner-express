@@ -4,51 +4,355 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>レシピ提案AI</title>
-  <link rel="stylesheet" href="style.css" />
   <style>
+    /* リセット */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      background: #f2f1ee;
+      color: #333;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    /* ヘッダー */
+    .header-horizontal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .ferret-image {
+      width: 120px;
+      height: auto;
+      display: block;
+    }
+
+    .speech-bubble {
+      position: relative;
+      background: #fff8dc;
+      border: 2px solid #ccc;
+      border-radius: 15px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      max-width: 220px;
+      text-align: center;
+    }
+
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -12px;
+      margin-top: -6px;
+      border-width: 6px 0 6px 12px;
+      border-style: solid;
+      border-color: transparent transparent transparent #fff8dc;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      color: #5b5b5b;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    /* フォーム */
+    form {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 24px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #444;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+    }
+
+    /* チェックボックスグループ */
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+      margin: 8px 0 15px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-group label {
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    /* トグルボタン */
     .toggle-buttons {
       display: flex;
       gap: 10px;
-      margin-top: 10px;
-      margin-bottom: 20px;
+      margin: 10px 0 20px;
     }
 
     .toggle-btn {
       flex: 1;
-      padding: 10px;
+      padding: 12px;
       font-size: 16px;
+      font-weight: 600;
       border: 2px solid #ccc;
       background-color: #fff;
-      border-radius: 6px;
+      color: #333; /* ★ 非アクティブ時の文字色 */
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .toggle-btn.active {
-      background-color: #8bc34a;
-      color: white;
-      border-color: #8bc34a;
+      background-color: #88b04b;
+      color: white; /* ★ アクティブ時は白文字 */
+      border-color: #88b04b;
     }
 
+    /* 送信ボタン */
+    button[type="submit"],
+    .btn {
+      width: 100%;
+      background-color: #88b04b;
+      color: white;
+      padding: 14px;
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover,
+    .btn:hover {
+      background-color: #729f3f;
+    }
+
+    button[type="submit"]:active,
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ローディング */
+    #loading {
+      text-align: center;
+      margin: 20px auto;
+      font-size: 16px;
+      color: #666;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      margin: 20px auto;
+      border: 6px solid #eee;
+      border-top: 6px solid #88b04b;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 結果表示 */
+    .recipe-card {
+      background: #fffdf0;
+      border: 2px solid #ffcf91;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 700px;
+      box-shadow: 0 2px 8px rgba(255, 179, 71, 0.2);
+    }
+
+    .recipe-card h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #4CAF50;
+      font-size: 22px;
+    }
+
+    .recipe-card pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "Arial", sans-serif;
+      line-height: 1.8;
+      margin: 0;
+      font-size: 15px;
+    }
+
+    /* ボタンコンテナ */
     .button-container {
       display: flex;
       justify-content: center;
       gap: 16px;
-      margin-top: 20px;
+      flex-wrap: wrap;
+      margin: 20px auto;
+      max-width: 700px;
+    }
+
+    .yellow-button,
+    .blue-button {
+      max-width: 250px;
+      width: 100%;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .yellow-button {
+      background-color: #fff8dc;
+      border-color: #ffd966;
+      color: #4a4a4a;
+    }
+
+    .yellow-button:hover {
+      background-color: #ffefb3;
+    }
+
+    .blue-button {
+      background-color: #e6f3ff;
+      border-color: #99c2ff;
+      color: #1c3b82;
+    }
+
+    .blue-button:hover {
+      background-color: #cce5ff;
+    }
+
+    /* お気に入り・履歴 */
+    #favoriteList,
+    #historyContainer {
+      margin: 20px auto;
+      padding: 16px;
+      border-radius: 12px;
+      background-color: #f9f9f9;
+      max-width: 700px;
+    }
+
+    .history-entry {
+      margin-bottom: 12px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .history-entry:hover {
+      background: #f0f0f0;
+    }
+
+    .history-time {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .history-recipe {
+      font-size: 14px;
+      color: #333;
+    }
+
+    /* レスポンシブ */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .header-horizontal {
+        gap: 1rem;
+      }
+
+      .ferret-image {
+        width: 80px;
+      }
+
+      .speech-bubble {
+        font-size: 0.9rem;
+        padding: 10px 14px;
+      }
+
+      form {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .toggle-btn {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .button-container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .yellow-button,
+      .blue-button {
+        max-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- ヘッダー -->
   <div class="header-horizontal">
     <div class="speech-bubble">今日のごはん<br />一緒に考えよう！</div>
-    <img src="/public/ferret_chef.png" alt="フェレットシェフ" class="ferret-image" />
+    <img src="/ferret_chef.png" alt="フェレットシェフ" class="ferret-image" onerror="this.style.display='none'" />
   </div>
 
   <h1>きょうのごはん何にする？</h1>
 
+  <!-- フォーム -->
   <form id="recipeForm">
     <label>食材（カンマ区切り）</label>
-    <input type="text" id="ingredients" placeholder="例：キャベツ、卵、にんじん" />
+    <input type="text" id="ingredients" placeholder="例：キャベツ、卵、にんじん" required />
 
     <label>入力した食材を使用する料理：</label>
     <div class="checkbox-group">
@@ -58,18 +362,18 @@
     </div>
 
     <label>👶 幼児（0〜5歳）：</label>
-    <input type="number" id="toddlers" value="0" min="0" /><br>
+    <input type="number" id="toddlers" value="0" min="0" max="10" />
 
     <label>🧒 小学生（6〜12歳）：</label>
-    <input type="number" id="kids" value="0" min="0" /><br>
+    <input type="number" id="kids" value="0" min="0" max="10" />
 
     <label>👩‍🦰 大人（13歳以上）：</label>
-    <input type="number" id="adults" value="2" min="0" /><br>
+    <input type="number" id="adults" value="2" min="1" max="10" />
 
     <label>子ども向けメニュー希望</label>
     <select id="wantKidsMenu">
       <option value="はい">はい</option>
-      <option value="いいえ">いいえ</option>
+      <option value="いいえ" selected>いいえ</option>
     </select>
 
     <label>ジャンル（和食、洋食など）</label>
@@ -88,287 +392,298 @@
     </div>
     <input type="hidden" name="menuType" id="menuType" value="recipe" />
 
-    <button class="btn" type="submit">レシピを提案してもらう</button>
+    <button type="submit">レシピを提案してもらう</button>
   </form>
 
-  <div id="loading" style="display: none;">レシピを考え中です...</div>
+  <!-- ローディング -->
+  <div id="loading" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p>レシピを考え中です...</p>
+  </div>
 
-  <div id="result" class="result-box"></div>
+  <!-- 結果表示 -->
+  <div id="result"></div>
 
-  <!-- お気に入り機能ボタン -->
+  <!-- アクションボタン -->
   <div class="button-container">
     <button id="addFavoriteBtn" class="yellow-button">⭐ お気に入りに追加</button>
     <button id="showFavoritesBtn" class="blue-button">📚 お気に入りを見る</button>
   </div>
 
-  <!-- お気に入り一覧表示エリア -->
-  <div id="favoriteList" style="display: none;"></div>
-
-  <div style="margin-top: 20px;">
-    <button id="retryBtn" style="display: none;">もう一度</button>
-    <button id="showHistoryBtn" style="display: none;">過去のレシピを見る</button>
+  <div class="button-container">
+    <button id="retryBtn" class="blue-button" style="display: none;">🔄 もう一度</button>
+    <button id="showHistoryBtn" class="blue-button" style="display: none;">📜 過去のレシピを見る</button>
   </div>
 
-  <div id="historyContainer" style="display: none; margin-top: 20px;"></div>
+  <!-- お気に入り・履歴 -->
+  <div id="favoriteList" style="display: none;"></div>
+  <div id="historyContainer" style="display: none;"></div>
 
-  <!-- ボタン切り替えスクリプト -->
-<!-- recipe.js を直接埋め込み -->
-<script>
-// ローディングや再提案用の要素
-const loading = document.getElementById("loading");
-const result = document.getElementById("result");
-const retryBtn = document.getElementById("retryBtn");
-const showHistoryBtn = document.getElementById("showHistoryBtn");
-const historyContainer = document.getElementById("historyContainer");
+  <!-- スクリプト -->
+  <script>
+    // ボタン切り替え
+    const buttons = document.querySelectorAll('.toggle-btn');
+    const hiddenInput = document.getElementById('menuType');
 
-// 履歴保存関数
-function saveRecipeToHistory(recipe) {
-  try {
-    const history = JSON.parse(localStorage.getItem("recipeHistory")) || [];
-    const timestamp = new Date().toLocaleString();
-    history.unshift({ timestamp, recipe });
-    // 最大20件まで保存
-    if (history.length > 20) history.length = 20;
-    localStorage.setItem("recipeHistory", JSON.stringify(history));
-    showHistoryBtn.style.display = "block";
-  } catch (e) {
-    console.warn("履歴保存失敗:", e);
-  }
-}
-
-// 履歴表示関数
-function displayHistory() {
-  try {
-    const history = JSON.parse(localStorage.getItem("recipeHistory")) || [];
-    if (history.length === 0) {
-      historyContainer.innerHTML = "<p>履歴がありません</p>";
-      historyContainer.style.display = "block";
-      return;
-    }
-
-    historyContainer.innerHTML = "<h3>過去のレシピ</h3>";
-    history.forEach((item) => {
-      const entry = document.createElement("div");
-      entry.className = "history-entry";
-      entry.innerHTML = `
-        <div class="history-time">${item.timestamp}</div>
-        <div class="history-recipe">${item.recipe.substring(0, 100)}...</div>
-      `;
-      entry.onclick = () => {
-        result.innerHTML = `
-          <div class="recipe-card">
-            <h3>🍽️ 過去のレシピ</h3>
-            <pre>${item.recipe}</pre>
-          </div>
-        `;
-        window.scrollTo({ top: result.offsetTop, behavior: 'smooth' });
-      };
-      historyContainer.appendChild(entry);
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        hiddenInput.value = btn.getAttribute('data-value');
+      });
     });
 
-    historyContainer.style.display = "block";
-  } catch (e) {
-    console.error("履歴表示エラー:", e);
-  }
-}
+    // 要素取得
+    const loading = document.getElementById("loading");
+    const result = document.getElementById("result");
+    const retryBtn = document.getElementById("retryBtn");
+    const showHistoryBtn = document.getElementById("showHistoryBtn");
+    const historyContainer = document.getElementById("historyContainer");
 
-// お気に入り保存
-function saveFavorite(recipe) {
-  try {
-    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    favorites.unshift({ recipe, timestamp: new Date().toLocaleString() });
-    if (favorites.length > 20) favorites.length = 20;
-    localStorage.setItem("favorites", JSON.stringify(favorites));
-    alert("お気に入りに追加しました！");
-  } catch (e) {
-    console.error("お気に入り保存失敗:", e);
-    alert("保存に失敗しました");
-  }
-}
+    // 履歴保存
+    function saveRecipeToHistory(recipe) {
+      try {
+        const history = JSON.parse(localStorage.getItem("recipeHistory")) || [];
+        const timestamp = new Date().toLocaleString('ja-JP');
+        history.unshift({ timestamp, recipe });
+        if (history.length > 20) history.length = 20;
+        localStorage.setItem("recipeHistory", JSON.stringify(history));
+        showHistoryBtn.style.display = "block";
+      } catch (e) {
+        console.warn("履歴保存失敗:", e);
+      }
+    }
 
-// お気に入り表示
-function displayFavorites() {
-  try {
-    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    const container = document.getElementById("favoriteList");
+    // 履歴表示
+    function displayHistory() {
+      try {
+        const history = JSON.parse(localStorage.getItem("recipeHistory")) || [];
+        if (history.length === 0) {
+          historyContainer.innerHTML = "<p>履歴がありません</p>";
+          historyContainer.style.display = "block";
+          return;
+        }
 
-    if (favorites.length === 0) {
-      container.innerHTML = "<p>お気に入りはまだありません。</p>";
-    } else {
-      container.innerHTML = "<h3>📚 お気に入り一覧</h3>";
-      favorites.forEach((item, index) => {
-        const div = document.createElement("div");
-        div.className = "history-entry";
-        div.innerHTML = `
-          <div class="history-time">${item.timestamp}</div>
-          <div class="history-recipe">${item.recipe.substring(0, 100)}...</div>
-          <button onclick="removeFavorite(${index})">❌ 削除</button>
-        `;
-        div.onclick = (e) => {
-          if (e.target.tagName !== 'BUTTON') {
+        historyContainer.innerHTML = "<h3>📜 過去のレシピ</h3>";
+        history.forEach((item) => {
+          const entry = document.createElement("div");
+          entry.className = "history-entry";
+          entry.innerHTML = `
+            <div class="history-time">${item.timestamp}</div>
+            <div class="history-recipe">${item.recipe.substring(0, 100)}...</div>
+          `;
+          entry.onclick = () => {
             result.innerHTML = `
               <div class="recipe-card">
-                <h3>🍽️ お気に入りレシピ</h3>
+                <h3>🍽️ 過去のレシピ</h3>
                 <pre>${item.recipe}</pre>
               </div>
             `;
-            window.scrollTo({ top: result.offsetTop, behavior: 'smooth' });
-          }
+            window.scrollTo({ top: result.offsetTop - 20, behavior: 'smooth' });
+            historyContainer.style.display = "none";
+          };
+          historyContainer.appendChild(entry);
+        });
+
+        historyContainer.style.display = "block";
+      } catch (e) {
+        console.error("履歴表示エラー:", e);
+      }
+    }
+
+    // お気に入り保存
+    function saveFavorite(recipe) {
+      try {
+        const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+        favorites.unshift({ recipe, timestamp: new Date().toLocaleString('ja-JP') });
+        if (favorites.length > 20) favorites.length = 20;
+        localStorage.setItem("favorites", JSON.stringify(favorites));
+        alert("⭐ お気に入りに追加しました！");
+      } catch (e) {
+        console.error("お気に入り保存失敗:", e);
+        alert("保存に失敗しました");
+      }
+    }
+
+    // お気に入り表示
+    function displayFavorites() {
+      try {
+        const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+        const container = document.getElementById("favoriteList");
+
+        if (favorites.length === 0) {
+          container.innerHTML = "<p>お気に入りはまだありません。</p>";
+        } else {
+          container.innerHTML = "<h3>📚 お気に入り一覧</h3>";
+          favorites.forEach((item, index) => {
+            const div = document.createElement("div");
+            div.className = "history-entry";
+            div.innerHTML = `
+              <div class="history-time">${item.timestamp}</div>
+              <div class="history-recipe">${item.recipe.substring(0, 100)}...</div>
+              <button onclick="removeFavorite(${index})" style="margin-top:8px;padding:6px 12px;background:#ff6b6b;color:white;border:none;border-radius:6px;cursor:pointer;">❌ 削除</button>
+            `;
+            const recipeDiv = div.querySelector('.history-recipe');
+            recipeDiv.onclick = () => {
+              result.innerHTML = `
+                <div class="recipe-card">
+                  <h3>🍽️ お気に入りレシピ</h3>
+                  <pre>${item.recipe}</pre>
+                </div>
+              `;
+              window.scrollTo({ top: result.offsetTop - 20, behavior: 'smooth' });
+              container.style.display = "none";
+            };
+            container.appendChild(div);
+          });
+        }
+
+        container.style.display = "block";
+      } catch (e) {
+        console.error("お気に入り表示エラー:", e);
+      }
+    }
+
+    // お気に入り削除
+    function removeFavorite(index) {
+      try {
+        const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+        favorites.splice(index, 1);
+        localStorage.setItem("favorites", JSON.stringify(favorites));
+        displayFavorites();
+      } catch (e) {
+        console.error("削除失敗:", e);
+      }
+    }
+
+    // バリデーション
+    function validateForm() {
+      const ingredients = document.getElementById("ingredients").value.trim();
+      const toddlers = Number(document.getElementById("toddlers").value);
+      const kids = Number(document.getElementById("kids").value);
+      const adults = Number(document.getElementById("adults").value);
+
+      if (!ingredients) {
+        alert("食材を入力してください。");
+        return false;
+      }
+
+      if (toddlers < 0 || kids < 0 || adults < 0) {
+        alert("人数は0以上を入力してください。");
+        return false;
+      }
+
+      if (toddlers + kids + adults === 0) {
+        alert("合計人数が0人です。人数を入力してください。");
+        return false;
+      }
+
+      return true;
+    }
+
+    // レシピ取得
+    async function getRecipe() {
+      if (!validateForm()) return;
+
+      const ingredients = document.getElementById("ingredients").value;
+      const useIn = Array.from(document.querySelectorAll('input[name="useIn"]:checked')).map(cb => cb.value);
+      const toddlers = Number(document.getElementById("toddlers").value);
+      const kids = Number(document.getElementById("kids").value);
+      const adults = Number(document.getElementById("adults").value);
+      const wantKidsMenu = document.getElementById("wantKidsMenu").value;
+      const genre = document.getElementById("genre").value;
+      const request = document.getElementById("request").value;
+      const avoid = document.getElementById("avoid").value;
+      const menuType = document.getElementById("menuType").value;
+
+      result.innerHTML = "";
+      loading.style.display = "block";
+      retryBtn.style.display = "none";
+      historyContainer.style.display = "none";
+      document.getElementById("favoriteList").style.display = "none";
+
+      try {
+        const payload = {
+          ingredients,
+          useIn,
+          toddlers,
+          kids,
+          adults,
+          wantKidsMenu,
+          genre,
+          request,
+          avoid,
+          menuType,
         };
-        container.appendChild(div);
+
+        if (menuType === "recipe") {
+          payload.mainDish = useIn.includes("main");
+          payload.sideDish = useIn.includes("side");
+          payload.soup = useIn.includes("soup");
+        }
+
+        console.log("📝 リクエスト送信:", payload);
+
+        const response = await fetch("/recipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ レスポンス受信:", data);
+
+        result.innerHTML = `
+          <div class="recipe-card">
+            <h3>🍽️ 今日のレシピ</h3>
+            <pre>${data.recipe || "レシピが見つかりませんでした。"}</pre>
+          </div>
+        `;
+
+        retryBtn.style.display = "block";
+        showHistoryBtn.style.display = "block";
+        saveRecipeToHistory(data.recipe);
+
+        window.scrollTo({ top: result.offsetTop - 20, behavior: 'smooth' });
+
+      } catch (error) {
+        console.error("❌ エラー:", error);
+        result.innerHTML = `
+          <div class="recipe-card">
+            <h3>❌ エラー</h3>
+            <pre>${error.message}</pre>
+          </div>
+        `;
+      } finally {
+        loading.style.display = "none";
+      }
+    }
+
+    // イベントリスナー
+    document.addEventListener("DOMContentLoaded", () => {
+      retryBtn.addEventListener("click", getRecipe);
+      showHistoryBtn.addEventListener("click", displayHistory);
+      document.getElementById("recipeForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        getRecipe();
       });
-    }
+      
+      document.getElementById("addFavoriteBtn").addEventListener("click", () => {
+        const recipe = document.querySelector("#result .recipe-card pre")?.innerText;
+        if (recipe) {
+          saveFavorite(recipe);
+        } else {
+          alert("保存するレシピが見つかりません。先にレシピを生成してください。");
+        }
+      });
 
-    container.style.display = "block";
-  } catch (e) {
-    console.error("お気に入り表示エラー:", e);
-  }
-}
-
-// お気に入り削除
-function removeFavorite(index) {
-  try {
-    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    favorites.splice(index, 1);
-    localStorage.setItem("favorites", JSON.stringify(favorites));
-    displayFavorites();
-  } catch (e) {
-    console.error("削除失敗:", e);
-  }
-}
-
-// 入力バリデーション関数
-function validateForm() {
-  const ingredients = document.getElementById("ingredients").value.trim();
-  const toddlers = Number(document.getElementById("toddlers").value);
-  const kids = Number(document.getElementById("kids").value);
-  const adults = Number(document.getElementById("adults").value);
-
-  if (!ingredients) {
-    alert("食材を入力してください。");
-    return false;
-  }
-
-  if (toddlers < 0 || kids < 0 || adults < 0) {
-    alert("人数は0以上を入力してください。");
-    return false;
-  }
-
-  if (toddlers + kids + adults === 0) {
-    alert("合計人数が0人です。人数を入力してください。");
-    return false;
-  }
-
-  return true;
-}
-
-// レシピ取得関数
-async function getRecipe() {
-  if (!validateForm()) return;
-
-  const ingredients = document.getElementById("ingredients").value;
-  const useIn = Array.from(document.querySelectorAll('input[name="useIn"]:checked')).map(cb => cb.value);
-  const toddlers = Number(document.getElementById("toddlers").value);
-  const kids = Number(document.getElementById("kids").value);
-  const adults = Number(document.getElementById("adults").value);
-  const wantKidsMenu = document.getElementById("wantKidsMenu").value;
-  const genre = document.getElementById("genre").value;
-  const request = document.getElementById("request").value;
-  const avoid = document.getElementById("avoid").value;
-  const menuType = document.getElementById("menuType").value;
-
-  let mainDish = false;
-  let sideDish = false;
-  let soup = false;
-
-  if (menuType === "recipe") {
-    const selected = useIn;
-    mainDish = selected.includes("main");
-    sideDish = selected.includes("side");
-    soup = selected.includes("soup");
-  }
-
-  result.innerHTML = "";
-  loading.style.display = "block";
-  retryBtn.style.display = "none";
-  historyContainer.style.display = "none";
-
-  try {
-    const payload = {
-      ingredients,
-      useIn,
-      toddlers,
-      kids,
-      adults,
-      wantKidsMenu,
-      genre,
-      request,
-      avoid,
-      menuType,
-    };
-
-    if (menuType === "recipe") {
-      payload.mainDish = mainDish;
-      payload.sideDish = sideDish;
-      payload.soup = soup;
-    }
-
-    console.log("📝 リクエスト送信:", payload);
-
-    const response = await fetch("/recipe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      document.getElementById("showFavoritesBtn").addEventListener("click", displayFavorites);
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ レスポンス受信:", data);
-
-    result.innerHTML = `
-      <div class="recipe-card">
-        <h3>🍽️ 今日のレシピ</h3>
-        <pre>${data.recipe || "レシピが見つかりませんでした。"}</pre>
-      </div>
-    `;
-
-    retryBtn.style.display = "block";
-    showHistoryBtn.style.display = "block";
-    saveRecipeToHistory(data.recipe);
-
-  } catch (error) {
-    console.error("❌ エラー:", error);
-    result.innerHTML = `<div class="recipe-card"><h3>エラー</h3><p>${error.message}</p></div>`;
-  } finally {
-    loading.style.display = "none";
-  }
-}
-
-// イベントリスナー
-document.addEventListener("DOMContentLoaded", () => {
-  retryBtn.addEventListener("click", getRecipe);
-  showHistoryBtn.addEventListener("click", displayHistory);
-  document.getElementById("recipeForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-    getRecipe();
-  });
-  
-  document.getElementById("addFavoriteBtn").addEventListener("click", () => {
-    const recipe = document.querySelector("#result .recipe-card pre")?.innerText;
-    if (recipe) {
-      saveFavorite(recipe);
-    } else {
-      alert("保存するレシピが見つかりません。");
-    }
-  });
-
-  document.getElementById("showFavoritesBtn").addEventListener("click", displayFavorites);
-});
-</script>
-
-  <script src="script.js"></script>
+  </script>
 </body>
 </html>
