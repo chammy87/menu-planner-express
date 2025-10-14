@@ -122,7 +122,14 @@ function preserveCheckedState(shoppingList, checkedSet) {
 
 // すべて描画
 function renderAll(result, baseData) {
+  console.log('🎨 renderAll開始:', result);
+  
   const container = document.getElementById("menuResults");
+  if (!container) {
+    console.error('❌ menuResults要素が見つかりません');
+    return;
+  }
+  
   container.innerHTML = "";
 
   // 上ツールバー
@@ -140,6 +147,7 @@ function renderAll(result, baseData) {
       </button>
     </div>`;
   container.appendChild(toolbar);
+  console.log('✅ ツールバー追加完了');
 
   document.getElementById("regenMenuBtn").addEventListener("click", () => {
     if (confirm('献立を再考案しますか？\n（買い物リストのチェック状態は保持されます）')) {
@@ -150,13 +158,18 @@ function renderAll(result, baseData) {
   document.getElementById("recalcShoppingBtn").addEventListener("click", recalculateShoppingList);
 
   // 日カード
-  (result.menu || []).forEach(dayData => {
+  console.log('📅 献立カード生成中...', result.menu?.length || 0, '日分');
+  (result.menu || []).forEach((dayData, index) => {
+    console.log(`  Day ${index + 1}:`, dayData);
     const card = buildDayCard(dayData, baseData);
     container.appendChild(card);
   });
+  console.log('✅ 献立カード追加完了');
 
   // 買い物
+  console.log('🛒 買い物リスト描画中...');
   renderShopping(result.shoppingList, result.availableList);
+  console.log('✅ renderAll完了');
 }
 
 // 1日カード
