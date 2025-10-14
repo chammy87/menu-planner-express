@@ -74,11 +74,15 @@ async function generateMenu(isRegenerate = false) {
   LAST_PARAMS = data;
 
   try {
+    console.log('📝 献立生成リクエスト送信:', data);
+    
     const result = await fetchJSON("/generate-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+
+    console.log('✅ 献立生成成功:', result);
 
     // ★ 再考案の場合、チェック済みアイテムを除外
     if (isRegenerate && checkedItems.size > 0) {
@@ -92,8 +96,12 @@ async function generateMenu(isRegenerate = false) {
     CURRENT = result;
     renderAll(result, data);
   } catch (e) {
-    if (e.name === "AbortError") return;
-    console.error(e);
+    // ★ AbortErrorの場合は何もしない（ユーザーが再度ボタンを押した場合）
+    if (e.name === "AbortError") {
+      console.log('⚠️ リクエストがキャンセルされました');
+      return;
+    }
+    console.error('❌ 献立生成エラー:', e);
     container.innerHTML =
       `<pre style="white-space:pre-wrap;background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:6px;">
 ⚠️ 献立APIエラー：${e.message}</pre>`;
