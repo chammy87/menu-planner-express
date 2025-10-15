@@ -1,21 +1,19 @@
 // script.js - 献立アプリのフロントエンド（完全版）
 
 // --- グローバル状態 ---
-let CURRENT = null;      // 直近の { menu, shoppingList, availableList, ... }
-let LAST_PARAMS = null;  // 直近の入力値（サーバに渡したもの）
-let inFlight = null;     // 連打時の中断用
-let checkedItems = new Set(); // チェック済み買い物リスト項目
+let CURRENT = null;
+let LAST_PARAMS = null;
+let inFlight = null;
+let checkedItems = new Set();
 
-// --- 共通fetch（JSON強制 & HTML誤返却を可視化 & 連打中断） ---
+// --- 共通fetch ---
 async function fetchJSON(url, options = {}, timeoutMs = 60000) {
   const controller = new AbortController();
-  
-  // ★ 修正：直前のリクエストがあれば中断（ただし新しいリクエストは続行）
   const previousFlight = inFlight;
   inFlight = controller;
   
   if (previousFlight && previousFlight !== controller) {
-    console.log('⚠️ 前のリクエストを中断します');
+    console.log('⚠️ 前のリクエストを中断');
     previousFlight.abort();
   }
 
@@ -32,7 +30,6 @@ async function fetchJSON(url, options = {}, timeoutMs = 60000) {
     }
     return JSON.parse(body);
   } catch (error) {
-    // ★ AbortErrorは通常のエラーとして処理しない
     if (error.name === 'AbortError') {
       console.log('🚫 リクエストが中断されました');
       throw error;
@@ -44,12 +41,17 @@ async function fetchJSON(url, options = {}, timeoutMs = 60000) {
   }
 }
 
-// 生成ボタン
-document.getElementById("generateBtn").addEventListener("click", () => generateMenu(false));
+// --- 献立生成 ---
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById("generateBtn");
+  if (btn) {
+    btn.addEventListener("click", () => generateMenu(false));
+  }
+});
 
 async function generateMenu(isRegenerate = false) {
   const container = document.getElementById("menuResults");
-  container.innerHTML = "<p>🍳 献立考え中…しばらくお待ちください</p>";
+  container.innerHTML = "<p style='text-align:center;padding:40px;font-size:18px;'>🍳 献立考え中…しばらくお待ちください</p>";
 
   const mode = (document.querySelector('input[name="mode"]:checked') || {}).value || "normal";
   const data = {
@@ -64,7 +66,6 @@ async function generateMenu(isRegenerate = false) {
     mode
   };
 
-  // ★ 再考案の場合、既存のavailableListを引き継ぐ
   if (isRegenerate && CURRENT?.availableList?.length > 0) {
     data.available = CURRENT.availableList.join('、');
     document.getElementById("available").value = data.available;
@@ -84,31 +85,29 @@ async function generateMenu(isRegenerate = false) {
 
     console.log('✅ 献立生成成功:', result);
 
-    // ★ 再考案の場合、チェック済みアイテムを除外
     if (isRegenerate && checkedItems.size > 0) {
       result.shoppingList = preserveCheckedState(result.shoppingList, checkedItems);
       console.log('✅ チェック済みアイテムを除外:', checkedItems.size + '個');
     } else {
-      // 初回生成時はチェック状態をリセット
       checkedItems.clear();
     }
 
     CURRENT = result;
     renderAll(result, data);
   } catch (e) {
-    // ★ AbortErrorの場合は何もしない（ユーザーが再度ボタンを押した場合）
     if (e.name === "AbortError") {
       console.log('⚠️ リクエストがキャンセルされました');
       return;
     }
     console.error('❌ 献立生成エラー:', e);
-    container.innerHTML =
-      `<pre style="white-space:pre-wrap;background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:6px;">
-⚠️ 献立APIエラー：${e.message}</pre>`;
+    container.innerHTML = `
+      <div style="background:#fff3cd;border:1px solid #ffeeba;padding:20px;border-radius:12px;margin:20px 0;">
+        <h3 style="color:#856404;margin-top:0;">⚠️ エラーが発生しました</h3>
+        <pre style="white-space:pre-wrap;color:#856404;font-size:14px;">${e.message}</pre>
+      </div>`;
   }
 }
 
-// ★ チェック済みアイテムを除外
 function preserveCheckedState(shoppingList, checkedSet) {
   const result = {};
   for (const [category, items] of Object.entries(shoppingList)) {
@@ -120,7 +119,7 @@ function preserveCheckedState(shoppingList, checkedSet) {
   return result;
 }
 
-// すべて描画
+// --- すべて描画 ---
 function renderAll(result, baseData) {
   console.log('🎨 renderAll開始:', result);
   
@@ -131,23 +130,22 @@ function renderAll(result, baseData) {
   }
   
   container.innerHTML = "";
+  container.style.display = "block";
 
-  // 上ツールバー
+  // ツールバー
   const toolbar = document.createElement("div");
   toolbar.className = "menu-toolbar";
+  toolbar.style.cssText = "display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap;";
   toolbar.innerHTML = `
-    <div style="display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap;">
-      <button id="regenMenuBtn" type="button"
-        style="padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;line-height:1.3;color:#111;display:inline-flex;align-items:center;gap:6px;">
-        <span>🔄</span><span>献立を再考案</span>
-      </button>
-      <button id="recalcShoppingBtn" type="button"
-        style="padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;line-height:1.3;color:#111;display:inline-flex;align-items:center;gap:6px;">
-        <span>🛒</span><span>買い物リスト再計算</span>
-      </button>
-    </div>`;
+    <button id="regenMenuBtn" type="button"
+      style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;color:#111;display:inline-flex;align-items:center;gap:6px;width:auto;">
+      <span>🔄</span><span>献立を再考案</span>
+    </button>
+    <button id="recalcShoppingBtn" type="button"
+      style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;color:#111;display:inline-flex;align-items:center;gap:6px;width:auto;">
+      <span>🛒</span><span>買い物リスト再計算</span>
+    </button>`;
   container.appendChild(toolbar);
-  console.log('✅ ツールバー追加完了');
 
   document.getElementById("regenMenuBtn").addEventListener("click", () => {
     if (confirm('献立を再考案しますか？\n（買い物リストのチェック状態は保持されます）')) {
@@ -159,20 +157,18 @@ function renderAll(result, baseData) {
 
   // 日カード
   console.log('📅 献立カード生成中...', result.menu?.length || 0, '日分');
-  (result.menu || []).forEach((dayData, index) => {
-    console.log(`  Day ${index + 1}:`, dayData);
+  (result.menu || []).forEach((dayData) => {
     const card = buildDayCard(dayData, baseData);
     container.appendChild(card);
   });
-  console.log('✅ 献立カード追加完了');
 
-  // 買い物
+  // 買い物リスト
   console.log('🛒 買い物リスト描画中...');
   renderShopping(result.shoppingList, result.availableList);
   console.log('✅ renderAll完了');
 }
 
-// 1日カード
+// --- 1日カード ---
 function buildDayCard(dayData, baseData) {
   const card = document.createElement("div");
   card.className = "menu-card";
@@ -185,7 +181,6 @@ function buildDayCard(dayData, baseData) {
   const regenBtn = document.createElement("button");
   regenBtn.type = "button";
   regenBtn.className = "day-regen";
-  regenBtn.style.cssText = "padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;line-height:1.3;color:#111;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;";
   regenBtn.innerHTML = `<span>🔄</span><span>その日の献立だけ再考案</span>`;
   regenBtn.addEventListener("click", () => regenerateDay(dayData.day));
   card.appendChild(regenBtn);
@@ -198,8 +193,7 @@ function buildDayCard(dayData, baseData) {
       <span class="chip chip-kcal">⚡ ${n.kcal ?? 0} kcal</span>
       <span class="chip chip-protein">🥚 たんぱく質 ${n.protein_g ?? 0} g</span>
       <span class="chip chip-veg">🥦 野菜目安 ${n.veg_servings ?? 0} SV</span>
-      ${n.balance ? `<span class="chip chip-note">📝 ${n.balance}</span>` : ""}
-    `;
+      ${n.balance ? `<span class="chip chip-note">📝 ${n.balance}</span>` : ""}`;
     card.appendChild(chips);
   }
 
@@ -228,12 +222,15 @@ function buildDayCard(dayData, baseData) {
   return card;
 }
 
-// その日だけ再考案
+// --- その日だけ再考案 ---
 async function regenerateDay(day) {
   const card = document.querySelector(`.menu-card[data-day="${day}"]`);
   const btn = card?.querySelector(".day-regen");
   const old = btn?.innerHTML;
-  if (btn) { btn.disabled = true; btn.innerHTML = `<span>🔄</span><span>再考案中…</span>`; }
+  if (btn) { 
+    btn.disabled = true; 
+    btn.innerHTML = `<span>🔄</span><span>再考案中…</span>`; 
+  }
   card.style.opacity = ".6";
 
   const others = (CURRENT?.menu || []).filter(x => Number(x.day) !== Number(day));
@@ -241,8 +238,10 @@ async function regenerateDay(day) {
   const avoidTokens = [];
   const split = s => String(s || "").split(/[とノの・、,／\s]+/).filter(Boolean);
   others.forEach(d => ["朝食", "昼食", "夕食"].forEach(m => {
-    const n = d?.meals?.[m]; if (!n) return;
-    avoidNames.push(n); split(n).forEach(t => avoidTokens.push(t));
+    const n = d?.meals?.[m]; 
+    if (!n) return;
+    avoidNames.push(n); 
+    split(n).forEach(t => avoidTokens.push(t));
   }));
 
   try {
@@ -255,7 +254,7 @@ async function regenerateDay(day) {
           ...LAST_PARAMS,
           days: 1,
           avoidRecent: [...avoidNames, ...avoidTokens],
-          available: (CURRENT.availableList || []).join('、') // ★ availableListを引き継ぐ
+          available: (CURRENT.availableList || []).join('、')
         })
       });
       newDay = one.menu?.[0];
@@ -267,7 +266,6 @@ async function regenerateDay(day) {
     CURRENT.menu[day - 1] = newDay;
     card.replaceWith(buildDayCard(newDay, LAST_PARAMS));
 
-    // 買い物リストを再計算
     await recalculateShoppingList();
 
   } catch (e) {
@@ -276,30 +274,36 @@ async function regenerateDay(day) {
       alert("その日の再考案に失敗しました。");
     }
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = old || `<span>🔄</span><span>その日の献立だけ再考案</span>`; }
+    if (btn) { 
+      btn.disabled = false; 
+      btn.innerHTML = old || `<span>🔄</span><span>その日の献立だけ再考案</span>`; 
+    }
     card.style.opacity = "";
   }
 }
 
-// 新メニューが他日と被っていないか
 function isUniqueEnough(newDay, others) {
   const majors = /(鶏|豚|牛|鮭|鯖|タラ|サワラ|卵|豆腐|ツナ)/;
   const names = new Set();
   const prots = new Set();
   others.forEach(d => ["朝食", "昼食", "夕食"].forEach(m => {
-    const n = d?.meals?.[m]; if (!n) return;
+    const n = d?.meals?.[m]; 
+    if (!n) return;
     names.add(n);
-    const mprot = n.match(majors)?.[0]; if (mprot) prots.add(mprot);
+    const mprot = n.match(majors)?.[0]; 
+    if (mprot) prots.add(mprot);
   }));
   for (const m of ["朝食", "昼食", "夕食"]) {
-    const n = newDay?.meals?.[m]; if (!n) continue;
+    const n = newDay?.meals?.[m]; 
+    if (!n) continue;
     if (names.has(n)) return false;
-    const p = n.match(majors)?.[0]; if (p && prots.has(p)) return false;
+    const p = n.match(majors)?.[0]; 
+    if (p && prots.has(p)) return false;
   }
   return true;
 }
 
-// ★ 買い物リスト再計算
+// --- 買い物リスト再計算 ---
 async function recalculateShoppingList() {
   try {
     if (!CURRENT || !CURRENT.menu || CURRENT.menu.length === 0) {
@@ -318,7 +322,6 @@ async function recalculateShoppingList() {
       })
     });
 
-    // ★ チェック状態を保持したまま更新
     CURRENT.shoppingList = preserveCheckedState(recData.shoppingList, checkedItems);
     CURRENT.availableList = recData.availableList || CURRENT.availableList;
 
@@ -334,7 +337,7 @@ async function recalculateShoppingList() {
   }
 }
 
-// 買い物リスト（丸ごと再描画）
+// --- 買い物リスト描画 ---
 function renderShopping(shoppingList = {}, availableList = []) {
   document.querySelector(".shopping-card")?.remove();
 
@@ -352,10 +355,9 @@ function renderShopping(shoppingList = {}, availableList = []) {
   shoppingCard.className = "menu-card shopping-card";
   shoppingCard.innerHTML = `
     <h3>🛒 買い物リスト</h3>
-    <p style="color:#666;font-size:14px;margin:8px 0;">
+    <p style="color:#666;font-size:14px;margin:8px 0 16px;">
       チェックした項目は「家にある食材」に追加され、再考案時に除外されます。
-    </p>
-  `;
+    </p>`;
 
   const createShoppingList = (title, list = [], color = "#bbb") => {
     const categoryDiv = document.createElement("div");
@@ -364,7 +366,7 @@ function renderShopping(shoppingList = {}, availableList = []) {
 
     const header = document.createElement("h4");
     header.textContent = title;
-    header.style.cssText = `cursor:pointer;background:${color};color:#fff;padding:8px 10px;margin:0;border-top-left-radius:6px;border-top-right-radius:6px;user-select:none;`;
+    header.style.cssText = `cursor:pointer;background:${color};color:#fff;padding:8px 10px;margin:0;border-top-right-radius:10px;user-select:none;`;
 
     const ul = document.createElement("ul");
     if (!list.length) {
@@ -381,7 +383,6 @@ function renderShopping(shoppingList = {}, availableList = []) {
         cb.type = "checkbox";
         cb.dataset.item = item;
 
-        // ★ チェック状態を復元
         const normalized = item.trim().toLowerCase();
         if (checkedItems.has(normalized)) {
           cb.checked = true;
@@ -391,7 +392,6 @@ function renderShopping(shoppingList = {}, availableList = []) {
         const sp = document.createElement("span");
         sp.textContent = item;
 
-        // ★ チェックイベント
         cb.addEventListener("change", () => {
           handleItemCheck(cb, item, li);
           toggleCategory(ul);
@@ -426,12 +426,11 @@ function renderShopping(shoppingList = {}, availableList = []) {
   }
 }
 
-// ★ チェックボックスのイベントハンドラ
+// --- チェックボックスハンドラ ---
 function handleItemCheck(checkbox, itemName, liElement) {
   const normalized = itemName.trim().toLowerCase();
 
   if (checkbox.checked) {
-    // チェックされた → 家にある食材に追加
     checkedItems.add(normalized);
     liElement.classList.add("checked");
 
@@ -441,7 +440,6 @@ function handleItemCheck(checkbox, itemName, liElement) {
     }
 
   } else {
-    // チェック解除 → 家にある食材から削除
     checkedItems.delete(normalized);
     liElement.classList.remove("checked");
 
@@ -450,7 +448,6 @@ function handleItemCheck(checkbox, itemName, liElement) {
     }
   }
 
-  // フォームの「家にある食材」欄を更新
   updateAvailableInput();
 
   console.log('✅ チェック状態更新:', {
@@ -460,21 +457,18 @@ function handleItemCheck(checkbox, itemName, liElement) {
   });
 }
 
-// ★ 「家にある食材」入力欄を更新
 function updateAvailableInput() {
   if (CURRENT?.availableList) {
     document.getElementById("available").value = CURRENT.availableList.join('、');
   }
 }
 
-/* =========================================================
-   レシピモーダル（スクロール可）
-========================================================= */
+// --- レシピモーダル ---
 async function openRecipeModal(dish, baseData) {
   const template = `
     <div style="background:#fff;max-width:620px;width:92%;padding:16px;border-radius:12px;box-sizing:border-box;max-height:85vh;overflow:auto;">
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="recipeClose" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;cursor:pointer;">× 閉じる</button>
+        <button id="recipeClose" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;cursor:pointer;background:#fff;">× 閉じる</button>
       </div>
       <h3 id="recipeTitle" style="margin:8px 0;"></h3>
       <div id="recipeMeta" style="margin:4px 0 10px;opacity:.8;"></div>
@@ -502,9 +496,14 @@ async function openRecipeModal(dish, baseData) {
   modal.style.display = "flex";
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = "hidden";
-  const close = () => { modal.style.display = "none"; document.body.style.overflow = prevOverflow || ""; };
+  const close = () => { 
+    modal.style.display = "none"; 
+    document.body.style.overflow = prevOverflow || ""; 
+  };
   closeBtn.onclick = close;
-  modal.addEventListener("click", ev => { if (ev.target === modal) close(); }, { once: true });
+  modal.addEventListener("click", ev => { 
+    if (ev.target === modal) close(); 
+  }, { once: true });
 
   title.textContent = dish;
   meta.textContent = "レシピ生成中…";
@@ -515,10 +514,10 @@ async function openRecipeModal(dish, baseData) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         dish,
-        toddlers: LAST_PARAMS.toddlers,
-        kids: LAST_PARAMS.kids,
-        adults: LAST_PARAMS.adults,
-        mode: LAST_PARAMS.mode
+        toddlers: LAST_PARAMS?.toddlers || 0,
+        kids: LAST_PARAMS?.kids || 0,
+        adults: LAST_PARAMS?.adults || 2,
+        mode: LAST_PARAMS?.mode || "standard"
       })
     });
 
@@ -547,8 +546,6 @@ async function openRecipeModal(dish, baseData) {
       rnut.innerHTML = `
         <span class="chip">kcal: ${r.nutrition_per_serving.kcal ?? "-"}</span>
         <span class="chip">P: ${r.nutrition_per_serving.protein_g ?? "-"}g</span>`;
-    } else {
-      rnut.textContent = "";
     }
   } catch (e) {
     if (e.name !== "AbortError") {
