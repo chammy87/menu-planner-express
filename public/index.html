@@ -160,16 +160,27 @@
     .chip-note { background: #f3e9ff; }
     
     .day-regen {
-      padding: 6px 12px;
-      border: 1px solid #ddd;
+      padding: 8px 16px;
+      border: 1px solid #3498db;
       border-radius: 8px;
-      background: #fff;
+      background: #3498db;
+      color: white;
       cursor: pointer;
       margin: 6px 0 12px;
       font-size: 14px;
+      font-weight: 600;
       width: auto;
+      transition: background 0.3s;
     }
-    .day-regen:hover { background: #f6f6f6; }
+    .day-regen:hover { 
+      background: #2980b9;
+      border-color: #2980b9;
+    }
+    .day-regen:disabled {
+      background: #95a5a6;
+      border-color: #95a5a6;
+      cursor: not-allowed;
+    }
     
     /* 買い物リスト */
     .shopping-card {
