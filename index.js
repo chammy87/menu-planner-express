@@ -83,12 +83,25 @@ const INGREDIENT_DATABASE = {
   "油揚げ": { category: "その他", alternatives: ["豆腐","厚揚げ"], protein: true },
   
   // 主食
+  "米": { category: "穀物・麺類・パン", staple: true },
   "ご飯": { category: "穀物・麺類・パン", staple: true },
   "パン": { category: "穀物・麺類・パン", staple: true },
   "うどん": { category: "穀物・麺類・パン", staple: true },
   "そば": { category: "穀物・麺類・パン", staple: true },
   "パスタ": { category: "穀物・麺類・パン", staple: true },
   "中華麺": { category: "穀物・麺類・パン", staple: true },
+  
+  // 基本調味料
+  "味噌": { category: "調味料・油", seasoning: true },
+  "醤油": { category: "調味料・油", seasoning: true },
+  "みりん": { category: "調味料・油", seasoning: true },
+  "酒": { category: "調味料・油", seasoning: true },
+  "砂糖": { category: "調味料・油", seasoning: true },
+  "塩": { category: "調味料・油", seasoning: true },
+  "油": { category: "調味料・油", seasoning: true },
+  "サラダ油": { category: "調味料・油", seasoning: true },
+  "ごま油": { category: "調味料・油", seasoning: true },
+  "酢": { category: "調味料・油", seasoning: true },
 };
 
 /* ===========================
