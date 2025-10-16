@@ -886,7 +886,32 @@ app.listen(port, () => {
   console.log(`✅ Server running on http://localhost:${port}`);
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`   OpenAI API: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '✗ Missing'}`);
-});ShoppingList(
+json.shoppingList = ensureShoppingFromMenu(json.menu, json.shoppingList);
+    
+    json.shoppingList = stripAvailableFromShoppingList(
+      json.shoppingList,
+      availableList
+    );
+
+    const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
+    for (const c of cats) {
+      const arr = Array.isArray(json.shoppingList[c]) ? json.shoppingList[c] : [];
+      json.shoppingList[c] = [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+      json.shoppingList[c].sort((a, b) => a.localeCompare(b, 'ja'));
+    }
+
+    console.log("✅ 買い物リスト生成完了");
+    console.log("   カテゴリ別アイテム数:", 
+      Object.fromEntries(cats.map(c => [c, json.shoppingList[c].length]))
+    );
+
+    res.json(json);
+    
+  } catch (e) {
+    console.error("❌ 献立生成エラー:", e);
+    next(e);
+  }
+});
       json.shoppingList || {},
       availableList
     );
