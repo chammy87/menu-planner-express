@@ -199,6 +199,7 @@ function sanitizeMeal(name = "", mealType = "") {
   
   if (!n) return "";
 
+  // 明らかにおかしい組み合わせを修正
   const badSoup = /(オムレツ|パンケーキ|ヨーグルト|ケーキ|プリン|パフェ|サンド|丼|定食)/;
   if (/(味噌汁|スープ)/.test(n) && badSoup.test(n)) {
     n = "豆腐とわかめの味噌汁";
@@ -206,6 +207,19 @@ function sanitizeMeal(name = "", mealType = "") {
   
   if (/卵とじ/.test(n) && /(ヨーグルト|フルーツ|パンケーキ)/.test(n)) {
     n = "ほうれん草の卵とじ";
+  }
+
+  // 「○○の油揚げ」のような不自然な組み合わせを修正
+  n = n.replace(/(鮭|鯖|タラ|サワラ|魚)の油揚げ/g, "$1の塩焼き");
+  n = n.replace(/(鶏肉|豚肉|牛肉|肉)の油揚げ/g, "$1の炒め物");
+  
+  // 重複した食材名を削除（例：「ほうれん草の油揚げと鮭の油揚げと鮭」→「ほうれん草と油揚げと鮭の煮物」）
+  if (/(と[^\s]+){3,}/.test(n)) {
+    const parts = n.split(/[と、]/).filter(Boolean);
+    const uniqueParts = [...new Set(parts.map(p => p.trim()))];
+    if (uniqueParts.length < parts.length && uniqueParts.length >= 2) {
+      n = uniqueParts.slice(0, 3).join("と") + "の煮物";
+    }
   }
 
   if (mealType === "昼食") {
@@ -228,7 +242,6 @@ function sanitizeMeal(name = "", mealType = "") {
     }
   }
 
-  n = n.replace(/(鮭|鯖|タラ|サワラ)の油揚げ/g, "$1の塩焼き");
   n = n.replace(/(スパゲ(?:ッティ|ティ)?|パスタ)[^、。]*?とご飯/g, "$1");
   n = n.replace(/(サンド[イィ]ッチ|トースト)[^、。]*?とご飯/g, "$1");
   
