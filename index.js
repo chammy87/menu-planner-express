@@ -1,4 +1,4 @@
-// index.js (ESM)
+// index.js (ESM) - 構造化JSON版
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 /* ===========================
-   CORS設定（本番環境用）
+   CORS設定
 =========================== */
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGINS 
@@ -21,11 +21,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
-
-// static は1回だけ。/ で home.html を返したいので index:false
 app.use(express.static("public", { index: false }));
 
-/* ---------- ホーム & ショートカット ---------- */
+/* ---------- ルート ---------- */
 app.get("/", (_req, res) => {
   res.sendFile("home.html", { root: "public" }, (err) => {
     if (err) res.sendFile("index.html", { root: "public" });
@@ -48,71 +46,59 @@ const client = new OpenAI({
 });
 
 /* ===========================
-   食材グループとエイリアス
+   食材データベース
 =========================== */
-const ingredientCategories = {
-  vegetables: {
-    "キャベツ": ["白菜","レタス","小松菜","ほうれん草","チンゲン菜","水菜"],
-    "白菜": ["キャベツ","レタス","小松菜","ほうれん草","チンゲン菜"],
-    "にんじん": ["大根","かぶ","かぼちゃ","パプリカ"],
-    "じゃがいも": ["さつまいも","長芋","かぼちゃ"],
-    "玉ねぎ": ["長ねぎ","ニラ","エシャロット"],
-    "ブロッコリー": ["カリフラワー","スナップエンドウ","アスパラガス"],
-    "ピーマン": ["パプリカ","ズッキーニ","なす"],
-  },
-  meats: {
-    "鶏肉": ["豚肉","牛肉","ひき肉"],
-    "豚肉": ["鶏肉","牛肉","ひき肉"],
-    "牛肉": ["鶏肉","豚肉","ひき肉"],
-    "ひき肉": ["鶏肉","豚肉","牛肉"],
-  },
-  fish: {
-    "鮭": ["鯖","タラ","サワラ"],
-    "鯖": ["鮭","タラ","サワラ"],
-    "タラ": ["鮭","鯖","サワラ"],
-    "サワラ": ["鮭","鯖","タラ"],
-  },
-  protein: {
-    "卵": ["豆腐","厚揚げ","油揚げ"],
-    "豆腐": ["厚揚げ","油揚げ","卵"],
-    "厚揚げ": ["豆腐","油揚げ","卵"],
-  },
+const INGREDIENT_DATABASE = {
+  // 野菜
+  "キャベツ": { category: "野菜・果物", alternatives: ["白菜","レタス","小松菜"] },
+  "白菜": { category: "野菜・果物", alternatives: ["キャベツ","レタス"] },
+  "にんじん": { category: "野菜・果物", alternatives: ["大根","かぶ"] },
+  "玉ねぎ": { category: "野菜・果物", alternatives: ["長ねぎ","ニラ"] },
+  "じゃがいも": { category: "野菜・果物", alternatives: ["さつまいも","長芋"] },
+  "ほうれん草": { category: "野菜・果物", alternatives: ["小松菜","チンゲン菜"] },
+  "ブロッコリー": { category: "野菜・果物", alternatives: ["カリフラワー","アスパラガス"] },
+  "ピーマン": { category: "野菜・果物", alternatives: ["パプリカ","なす"] },
+  "トマト": { category: "野菜・果物", alternatives: ["ミニトマト"] },
+  "なす": { category: "野菜・果物", alternatives: ["ズッキーニ","ピーマン"] },
+  "大根": { category: "野菜・果物", alternatives: ["かぶ","にんじん"] },
+  "もやし": { category: "野菜・果物", alternatives: ["キャベツ"] },
+  "長ねぎ": { category: "野菜・果物", alternatives: ["玉ねぎ","ニラ"] },
+  
+  // 肉類
+  "鶏肉": { category: "肉・魚・卵・乳製品", alternatives: ["豚肉","ひき肉"], protein: true },
+  "豚肉": { category: "肉・魚・卵・乳製品", alternatives: ["鶏肉","牛肉"], protein: true },
+  "牛肉": { category: "肉・魚・卵・乳製品", alternatives: ["豚肉","鶏肉"], protein: true },
+  "ひき肉": { category: "肉・魚・卵・乳製品", alternatives: ["鶏肉","豚肉"], protein: true },
+  
+  // 魚類
+  "鮭": { category: "肉・魚・卵・乳製品", alternatives: ["鯖","タラ"], protein: true },
+  "鯖": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","サワラ"], protein: true },
+  "タラ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
+  "サワラ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
+  
+  // たんぱく質
+  "卵": { category: "肉・魚・卵・乳製品", alternatives: ["豆腐"], protein: true },
+  "豆腐": { category: "その他", alternatives: ["厚揚げ","油揚げ"], protein: true },
+  "厚揚げ": { category: "その他", alternatives: ["豆腐","油揚げ"], protein: true },
+  "油揚げ": { category: "その他", alternatives: ["豆腐","厚揚げ"], protein: true },
+  
+  // 主食
+  "ご飯": { category: "穀物・麺類・パン", staple: true },
+  "パン": { category: "穀物・麺類・パン", staple: true },
+  "うどん": { category: "穀物・麺類・パン", staple: true },
+  "そば": { category: "穀物・麺類・パン", staple: true },
+  "パスタ": { category: "穀物・麺類・パン", staple: true },
+  "中華麺": { category: "穀物・麺類・パン", staple: true },
 };
-
-// 主食リスト（料理名を除外）
-const stapleFoods = [
-  "ご飯","白米","玄米","ライス",
-  "パン","食パン",
-  "うどん","そば","そうめん","パスタ","スパゲッティ","ラーメン","中華麺",
-  "おにぎり","グラノーラ"
-];
-
-const cookWordRe = /(焼|炒|煮|蒸|揚|和え|漬|茹|炊|混|とじ|オムレツ|グラタン|カレー|チャーハン|丼|定食|サンド|トースト|パスタ|スパゲ|うどん|そば|ラーメン|粥|雑炊|おにぎり|味噌汁|スープ)/;
-
-const aliases = {
-  "鶏": "鶏肉",
-  "豚": "豚肉",
-  "牛": "牛肉",
-  "サーモン": "鮭",
-  "さば": "鯖",
-  "サバ": "鯖",
-  "ツナ": "ツナ",
-};
-const canon = (t = "") => aliases[t] || t;
 
 /* ===========================
    ユーティリティ
 =========================== */
-const normalize = (s) =>
-  String(s || "").trim().toLowerCase().replace(/\s+/g, "").replace(/[（）()　]/g, "");
-
 function extractFirstJson(text) {
   text = String(text || "").trim();
-  text = text.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "");
+  text = text.replace(/```(?:json)?\s*/g, "");
   
-  let depth = 0;
-  let start = -1;
-  let end = -1;
+  let depth = 0, start = -1, end = -1;
   
   for (let i = 0; i < text.length; i++) {
     if (text[i] === '{') {
@@ -148,8 +134,6 @@ async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
         messages: [{ role: "user", content: prompt }],
         temperature,
         top_p: 0.95,
-        presence_penalty: 0.2,
-        frequency_penalty: 0.2
       });
       
       const content = r.choices?.[0]?.message?.content ?? "";
@@ -172,373 +156,236 @@ async function callModel(prompt, { temperature = 0.7, maxRetries = 3 } = {}) {
         continue;
       }
       
-      if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNRESET') {
-        console.log(`⏳ Network error, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        continue;
-      }
-      
-      if (attempt === maxRetries) {
-        throw error;
-      }
+      if (attempt === maxRetries) throw error;
     }
   }
   
-  throw lastError || new Error("OpenAI API call failed after retries");
+  throw lastError || new Error("OpenAI API call failed");
 }
 
-const isGenericName = (name = "") => {
-  const n = String(name).trim();
-  return !!n && /^[^\s]+$/.test(n) && !cookWordRe.test(n);
-};
-
-const escapeReg = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-function sanitizeMeal(name = "", mealType = "") {
-  let n = String(name || "").replace(/\s+/g, " ").trim();
-  
-  if (!n) return "";
-
-  // 明らかにおかしい組み合わせを修正
-  const badSoup = /(オムレツ|パンケーキ|ヨーグルト|ケーキ|プリン|パフェ|サンド|丼|定食)/;
-  if (/(味噌汁|スープ)/.test(n) && badSoup.test(n)) {
-    n = "豆腐とわかめの味噌汁";
-  }
-  
-  if (/卵とじ/.test(n) && /(ヨーグルト|フルーツ|パンケーキ)/.test(n)) {
-    n = "ほうれん草の卵とじ";
-  }
-
-  // 「○○の油揚げ」のような不自然な組み合わせを修正
-  n = n.replace(/(鮭|鯖|タラ|サワラ|魚)の油揚げ/g, "$1の塩焼き");
-  n = n.replace(/(鶏肉|豚肉|牛肉|肉)の油揚げ/g, "$1の炒め物");
-  
-  // 重複した食材名を削除（例：「ほうれん草の油揚げと鮭の油揚げと鮭」→「ほうれん草と油揚げと鮭の煮物」）
-  if (/(と[^\s]+){3,}/.test(n)) {
-    const parts = n.split(/[と、]/).filter(Boolean);
-    const uniqueParts = [...new Set(parts.map(p => p.trim()))];
-    if (uniqueParts.length < parts.length && uniqueParts.length >= 2) {
-      n = uniqueParts.slice(0, 3).join("と") + "の煮物";
-    }
-  }
-
-  if (mealType === "昼食") {
-    const hasStaple = /(ご飯|ライス|丼|パン|サンド|トースト|うどん|そば|そうめん|パスタ|スパゲッティ|スパゲティ|ラーメン|焼きそば|チャーハン|麺)/.test(n);
-    if (!hasStaple) {
-      n = `${n}とご飯`;
-    }
-  }
-
-  if (mealType === "夕食") {
-    const hasProtein = /(鶏|豚|牛|鮭|鯖|タラ|サワラ|魚|卵|豆腐|厚揚げ|ツナ)/.test(n);
-    if (!hasProtein) {
-      n = `${n}と鶏の照り焼き`;
-    }
-  }
-
-  if (mealType === "朝食") {
-    if (/^[^\s]+$/.test(n) && !/(汁|スープ|丼|サンド|トースト|粥|雑炊)/.test(n)) {
-      n = `${n}の卵とじ`;
-    }
-  }
-
-  n = n.replace(/(スパゲ(?:ッティ|ティ)?|パスタ)[^、。]*?とご飯/g, "$1");
-  n = n.replace(/(サンド[イィ]ッチ|トースト)[^、。]*?とご飯/g, "$1");
-  
-  return n;
-}
-
-const splitTokens = (s) =>
-  String(s || "")
-    .replace(/[（(）)［\]｛｝【】]/g, " ")
-    .replace(/[：:／/]/g, " ")
-    .split(/(?:と|の|・|、|,|\s+)/)
-    .filter(Boolean);
+const normalize = (s) =>
+  String(s || "").trim().toLowerCase().replace(/\s+/g, "").replace(/[（）()　]/g, "");
 
 /* ===========================
-   重複回避（同日・前日） + 近縁置換
+   構造化プロンプト生成
 =========================== */
-function getReplacement(tok) {
-  const pool = {
-    ...ingredientCategories.meats,
-    ...ingredientCategories.fish,
-    ...ingredientCategories.vegetables,
-    ...ingredientCategories.protein
-  };
-  const base = pool[canon(tok)];
-  if (base?.length) {
-    return base[Math.floor(Math.random() * base.length)];
+function buildStructuredPrompt({ toddlers, kids, adults, days, meals = [], avoid, request, available, avoidRecent = [] }) {
+  const mealsLine = meals.length ? meals.join("、") : "朝食、昼食、夕食";
+  const avoidLine = [avoid, ...(avoidRecent || [])].filter(Boolean).join("、") || "なし";
+
+  const mealFields = [];
+  if (meals.includes("朝食")) {
+    mealFields.push(`"朝食": {
+          "main": "主菜名（例：目玉焼き、焼き魚）",
+          "side": "副菜名（例：サラダ、おひたし）",
+          "soup": "汁物名（例：味噌汁）",
+          "staple": "主食名（例：ご飯、パン）"
+        }`);
   }
-  const fallbacks = ["ほうれん草", "小松菜", "白菜", "鶏肉", "豚肉", "鮭", "豆腐"];
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  if (meals.includes("昼食")) {
+    mealFields.push(`"昼食": {
+          "main": "主菜名",
+          "side": "副菜名",
+          "staple": "主食名"
+        }`);
+  }
+  if (meals.includes("夕食")) {
+    mealFields.push(`"夕食": {
+          "main": "主菜名",
+          "side": "副菜名",
+          "soup": "汁物名"
+        }`);
+  }
+
+  return `
+あなたは栄養士です。以下の条件で${days}日分の献立を作成してください。
+
+【条件】
+- 家族構成: 幼児${toddlers}人、小学生${kids}人、大人${adults}人
+- 作成する食事: ${mealsLine}
+- 避けたい食材/料理: ${avoidLine}
+- リクエスト: ${request || "なし"}
+- 家にある食材: ${available || "なし"}
+
+【重要な制約】
+1. 料理名はシンプルに（例：「鶏の照り焼き」「野菜炒め」「豆腐の味噌汁」）
+2. 同じ日に同じたんぱく質（鶏/豚/牛/魚/卵/豆腐）を使わない
+3. 連続する日に同じ食材を使わない
+4. 汁物の具は「野菜、きのこ、豆腐、わかめ」のみ
+5. 各料理で使う主要食材を必ずingredientsに列挙する
+
+【出力形式】厳密なJSONのみ（説明不要）
+
+{
+  "menu": [
+    {
+      "day": 1,
+      "meals": {
+        ${mealFields.join(',\n        ')}
+      },
+      "ingredients": {
+        "鶏肉": ["朝食-main"],
+        "キャベツ": ["昼食-side"],
+        "豆腐": ["夕食-soup"]
+      }
+    }
+  ]
 }
 
-function filterMenu(menu) {
+ingredients の値は ["食事名-位置"] の配列です。
+位置は main/side/soup/staple のいずれかです。
+`.trim();
+}
+
+/* ===========================
+   重複回避処理
+=========================== */
+function avoidDuplicates(menu) {
   if (!Array.isArray(menu) || menu.length === 0) return menu;
   
-  let prevDaySet = new Set();
-
-  return menu.map(day => {
-    const usedToday = new Set();
-    const mealsOut = {};
-
-    for (const [meal, raw] of Object.entries(day.meals || {})) {
-      let dish = String(raw || "");
-      dish = sanitizeMeal(dish, meal);
-
-      for (const t0 of splitTokens(dish)) {
-        const t = canon(t0);
+  let prevDayIngredients = new Set();
+  
+  return menu.map((day, dayIndex) => {
+    const todayIngredients = new Set();
+    const newIngredients = { ...day.ingredients };
+    const newMeals = JSON.parse(JSON.stringify(day.meals));
+    
+    // 各食材をチェック
+    for (const [ingredient, usage] of Object.entries(day.ingredients || {})) {
+      const ingredientData = INGREDIENT_DATABASE[ingredient];
+      
+      // 前日と重複している場合
+      if (prevDayIngredients.has(ingredient) && ingredientData?.alternatives?.length > 0) {
+        const replacement = ingredientData.alternatives[0];
+        console.log(`  🔄 ${dayIndex + 1}日目: ${ingredient} → ${replacement} (前日重複回避)`);
         
-        if (stapleFoods.some(k => t.includes(k))) continue;
+        // 食材名を置換
+        delete newIngredients[ingredient];
+        newIngredients[replacement] = usage;
         
-        if (usedToday.has(t) || prevDaySet.has(t)) {
-          const rep = getReplacement(t);
-          if (rep && rep !== t) {
-            dish = dish.replace(new RegExp(escapeReg(t0), "g"), rep);
-            usedToday.add(canon(rep));
+        // 料理名も置換
+        for (const position of usage) {
+          const [mealType, dishType] = position.split('-');
+          if (newMeals[mealType]?.[dishType]) {
+            newMeals[mealType][dishType] = newMeals[mealType][dishType].replace(
+              new RegExp(ingredient, 'g'),
+              replacement
+            );
           }
-        } else {
-          usedToday.add(t);
         }
+        
+        todayIngredients.add(replacement);
+      } else {
+        todayIngredients.add(ingredient);
       }
-      mealsOut[meal] = dish;
     }
-
-    prevDaySet = new Set(
-      [...usedToday].filter(t => !stapleFoods.some(k => t.includes(k)))
-    );
-
-    return { ...day, meals: mealsOut };
+    
+    prevDayIngredients = todayIngredients;
+    
+    return {
+      ...day,
+      meals: newMeals,
+      ingredients: newIngredients
+    };
   });
 }
 
 /* ===========================
-   食材カテゴリマップ（買い物用）
+   買い物リスト生成
 =========================== */
-const ingredientToCategory = (() => {
-  const map = {};
-  Object.keys(ingredientCategories.vegetables).forEach(k => (map[k] = "野菜・果物"));
-  ["鶏肉","豚肉","牛肉","ひき肉","卵","豆腐","厚揚げ","油揚げ","鮭","鯖","タラ","サワラ","ツナ"]
-    .forEach(k => (map[k] = "肉・魚・卵・乳製品"));
-  stapleFoods.forEach(k => (map[k] = "穀物・麺類・パン"));
+function generateShoppingList(menu, availableList = []) {
+  const shopping = {
+    "野菜・果物": new Set(),
+    "肉・魚・卵・乳製品": new Set(),
+    "穀物・麺類・パン": new Set(),
+    "調味料・油": new Set(),
+    "その他": new Set()
+  };
   
-  // エイリアスとトースト統合
-  map["トースト"] = "穀物・麺類・パン";
-  map["サンドイッチ"] = "穀物・麺類・パン";
-  map["ホットサンド"] = "穀物・麺類・パン";
-  map["鶏"] = "肉・魚・卵・乳製品";
-  map["豚"] = "肉・魚・卵・乳製品";
-  map["牛"] = "肉・魚・卵・乳製品";
-  map["サーモン"] = "肉・魚・卵・乳製品";
-  map["サバ"] = "肉・魚・卵・乳製品";
-  map["さば"] = "肉・魚・卵・乳製品";
-  
-  return map;
-})();
-
-/* ===========================
-   料理名から既知食材を検出
-=========================== */
-const BOUNDARY = "[^\\u4E00-\\u9FFF\\u3040-\\u309F\\u30A0-\\u30FFA-Za-z0-9]";
-
-function detectCoreIngredients(name = "") {
-  const src = String(name || "");
-  const found = new Set();
-
-  const keys = new Set([
-    ...Object.keys(ingredientToCategory),
-    ...stapleFoods,
-    ...Object.keys(aliases),
-    "鶏","豚","牛","卵","豆腐","厚揚げ","油揚げ","鮭","鯖","タラ","サワラ","ツナ",
-  ]);
-
-  const sortedKeys = [...keys].sort((a, b) => b.length - a.length);
-
-  for (const k of sortedKeys) {
-    if (!k) continue;
-    
-    if (k.length === 1) {
-      const rx = new RegExp(`(?:^|${BOUNDARY})${escapeReg(k)}(?:$|${BOUNDARY})`, "u");
-      if (rx.test(src)) found.add(canon(k));
-    } else {
-      if (src.includes(k)) found.add(canon(k));
-    }
-  }
-
-  if (src.includes("牛乳")) found.delete("牛肉");
-  if (src.includes("鶏ガラ")) found.delete("鶏肉");
-  if (src.includes("豚骨")) found.delete("豚肉");
-
-  return [...found];
-}
-
-/* ===========================
-   買い物リストユーティリティ
-=========================== */
-function stripAvailableFromShoppingList(shoppingList, availableList) {
-  if (!shoppingList) return {};
-  
-  const avail = new Set(
-    (availableList || [])
-      .map(x => normalize(x))
-      .filter(Boolean)
-      .filter(x => x.length >= 2)
+  // 正規化した利用可能食材リスト
+  const availableNormalized = new Set(
+    availableList.map(x => normalize(x)).filter(x => x.length >= 2)
   );
   
-  console.log("🔍 除外する食材（正規化後）:", [...avail]);
+  console.log("🔍 除外する食材:", [...availableNormalized]);
   
-  const out = {};
-  let removedCount = 0;
-  
-  for (const [cat, items] of Object.entries(shoppingList)) {
-    out[cat] = (items || []).filter(x => {
-      const n = normalize(x);
+  // 各日の食材を収集
+  for (const day of menu) {
+    for (const [ingredient, usage] of Object.entries(day.ingredients || {})) {
+      const ingredientData = INGREDIENT_DATABASE[ingredient];
       
-      if (avail.has(n)) {
-        removedCount++;
-        console.log(`  ❌ 除外: ${x} (完全一致)`);
-        return false;
+      if (!ingredientData) {
+        console.log(`  ⚠️ 未登録食材: ${ingredient}`);
+        continue;
       }
       
-      for (const a of avail) {
-        if (a && (n.includes(a) || a.includes(n))) {
-          removedCount++;
-          console.log(`  ❌ 除外: ${x} (部分一致: ${a})`);
-          return false;
+      // 利用可能食材リストにある場合はスキップ
+      const normalized = normalize(ingredient);
+      let shouldSkip = false;
+      
+      for (const avail of availableNormalized) {
+        if (normalized === avail || normalized.includes(avail) || avail.includes(normalized)) {
+          console.log(`  ❌ 除外: ${ingredient} (家にある)`);
+          shouldSkip = true;
+          break;
         }
       }
       
-      return true;
-    });
-  }
-  
-  console.log(`📊 ${removedCount}個の食材を買い物リストから除外しました`);
-  
-  return out;
-}
-
-function pickStapleFrom(token = "") {
-  return stapleFoods.find(k => token.includes(k)) || null;
-}
-
-function normalizeProteinToken(token = "") {
-  if (/鶏|チキン/.test(token)) return "鶏肉";
-  if (/豚(?!骨)/.test(token)) return "豚肉";
-  if (/牛(?!乳)/.test(token)) return "牛肉";
-  if (/鮭|サーモン/.test(token)) return "鮭";
-  if (/鯖|サバ|さば/.test(token)) return "鯖";
-  if (/タラ/.test(token)) return "タラ";
-  if (/サワラ/.test(token)) return "サワラ";
-  if (/ツナ/.test(token)) return "ツナ";
-  if (/卵|玉子/.test(token)) return "卵";
-  if (/豆腐/.test(token)) return "豆腐";
-  if (/厚揚げ/.test(token)) return "厚揚げ";
-  if (/油揚げ/.test(token)) return "油揚げ";
-  return null;
-}
-
-// 料理名と加工品を除外する処理
-function ensureShoppingFromMenu(menu = [], shopping = {}) {
-  const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
-  cats.forEach(c => (shopping[c] = Array.isArray(shopping[c]) ? shopping[c] : []));
-  
-  const seen = {};
-  cats.forEach(c => (seen[c] = new Set((shopping[c] || []).map(x => x.trim().toLowerCase()))));
-
-  // 料理名や加工品を除外
-  const dishPattern = /(カレー|チャーハン|炒飯|焼きそば|丼|サラダ|スープ|味噌汁|煮物|炒め|焼き|揚げ|蒸し|和え|漬け|グラタン|シチュー|リゾット)/;
-  const excludePattern = /(ツナ缶|おにぎり|トースト|ヨーグルト|グラノーラ|パンケーキ|サンドイッチ|ホットサンド)/;
-
-  for (const day of (menu || [])) {
-    for (const meal of ["朝食","昼食","夕食"]) {
-      const name = String(day?.meals?.[meal] || "");
-      const toks = new Set(splitTokens(name));
-      detectCoreIngredients(name).forEach(t => toks.add(t));
-
-      for (let t0 of toks) {
-        let t = canon(t0);
-        
-        // 料理名や加工品はスキップ
-        if (dishPattern.test(t) || excludePattern.test(t)) {
-          console.log(`  ⏭️ スキップ（料理名/加工品）: ${t}`);
-          continue;
-        }
-        
-        // 2文字未満もスキップ
-        if (t.length < 2) continue;
-        
-        let cat = ingredientToCategory[t];
-
-        if (!cat) {
-          const staple = pickStapleFrom(t);
-          if (staple) {
-            // 基本食材のみ追加（加工品は除外）
-            if (excludePattern.test(staple)) {
-              console.log(`  ⏭️ スキップ（加工品）: ${staple}`);
-              continue;
-            }
-            t = staple;
-            cat = "穀物・麺類・パン";
-          } else {
-            const prot = normalizeProteinToken(t);
-            if (prot) {
-              t = prot;
-              cat = "肉・魚・卵・乳製品";
-            }
-          }
-        }
-
-        if (cat && !seen[cat].has(t.toLowerCase())) {
-          shopping[cat].push(t);
-          seen[cat].add(t.toLowerCase());
-          console.log(`  ✅ 追加: ${t} → ${cat}`);
-        }
+      if (shouldSkip) continue;
+      
+      // カテゴリに追加
+      const category = ingredientData.category;
+      if (category && shopping[category]) {
+        shopping[category].add(ingredient);
+        console.log(`  ✅ 追加: ${ingredient} → ${category}`);
       }
     }
   }
   
-  return shopping;
+  // SetをArrayに変換してソート
+  const result = {};
+  for (const [category, items] of Object.entries(shopping)) {
+    result[category] = [...items].sort((a, b) => a.localeCompare(b, 'ja'));
+  }
+  
+  console.log("📊 買い物リスト生成完了:", 
+    Object.fromEntries(Object.entries(result).map(([k, v]) => [k, v.length]))
+  );
+  
+  return result;
 }
 
 /* ===========================
-   プロンプト（改善版）
+   レガシー形式への変換
 =========================== */
-function buildPrompt({ toddlers, kids, adults, days, meals = [], avoid, request, available, avoidRecent = [] }) {
-  const mealsLine = meals.length ? meals.join("、") : "朝食、昼食、夕食";
-  const avoidLine = [avoid, ...(avoidRecent || [])].filter(Boolean).join("、") || "なし";
-
-  const fields = [];
-  if (meals.includes("朝食")) fields.push(`"朝食": "料理名"`);
-  if (meals.includes("昼食")) fields.push(`"昼食": "料理名"`);
-  if (meals.includes("夕食")) fields.push(`"夕食": "料理名"`);
-
-  return `
-厳密JSONのみを返してください（説明・コードフェンス禁止）。必ず "menu" の要素数は ${days} 件、"day" は 1..${days} の連番。
-
-家族: 幼児${toddlers} / 小学生${kids} / 大人${adults}
-日数: ${days}
-出力する食事: ${mealsLine}（未選択の食事は出力しない）
-避けたい語や料理: ${avoidLine}
-リクエスト: ${request || "なし"}
-家にある食材: ${available || "なし"}
-
-制約:
-- 料理名は具体的に（例：「鶏の照り焼き」「豚肉と野菜の炒め物」「鮭のムニエル」など）
-- 昼食は主食を必ず含む（例：「○○とご飯」「○○丼」「○○パスタ」「○○うどん」）
-- 夕食は主菜（肉/魚/卵/豆腐等）を必ず含む
-- 同じ主要たんぱく質（鶏/豚/牛/鮭/鯖/タラ/卵/豆腐/ツナ）を同じ日に重複させない
-- 味噌汁/スープの具は野菜・きのこ・豆腐・わかめ等のみ
-- 朝食は和食または洋食で統一（例：和食なら「ご飯、味噌汁、焼き魚」、洋食なら「トースト、目玉焼き、サラダ」）
-- 「チャーハン」「焼きそば」などは主食として扱う場合のみ使用
-- オムレツやサラダなど単品料理だけでなく、副菜や汁物も組み合わせてバランスの良い献立にする
-
-{
-  "menu":[
-    ${Array.from({ length: Number(days) || 1 }, (_, i) => `{"day":${i + 1},"meals":{ ${fields.join(", ")} },"nutrition":{"kcal":0,"protein_g":0,"veg_servings":0,"balance":""}}`).join(",")}
-  ],
-  "shoppingList":{"野菜・果物":[],"肉・魚・卵・乳製品":[],"穀物・麺類・パン":[],"調味料・油":[],"その他":[]},
-  "availableList":[]
-}`.trim();
+function convertToLegacyFormat(structuredMenu) {
+  return structuredMenu.map(day => {
+    const legacyMeals = {};
+    
+    for (const [mealType, dishes] of Object.entries(day.meals || {})) {
+      const parts = [];
+      
+      if (dishes.main) parts.push(dishes.main);
+      if (dishes.side) parts.push(dishes.side);
+      if (dishes.soup) parts.push(dishes.soup);
+      if (dishes.staple && !dishes.main?.includes(dishes.staple)) {
+        parts.push(dishes.staple);
+      }
+      
+      legacyMeals[mealType] = parts.join('、');
+    }
+    
+    return {
+      day: day.day,
+      meals: legacyMeals,
+      nutrition: {
+        kcal: 0,
+        protein_g: 0,
+        veg_servings: 0,
+        balance: ""
+      }
+    };
+  });
 }
 
 /* ===========================
@@ -546,7 +393,6 @@ function buildPrompt({ toddlers, kids, adults, days, meals = [], avoid, request,
 =========================== */
 function validateMenuRequest(body) {
   const { toddlers, kids, adults, days, meals } = body;
-  
   const errors = [];
   
   if (!Number.isInteger(toddlers) || toddlers < 0 || toddlers > 10) {
@@ -584,15 +430,8 @@ app.post("/generate-menu", async (req, res, next) => {
     }
     
     const {
-      toddlers,
-      kids,
-      adults,
-      days,
-      meals = [],
-      avoid,
-      request,
-      available,
-      avoidRecent = []
+      toddlers, kids, adults, days, meals = [],
+      avoid, request, available, avoidRecent = []
     } = req.body;
 
     const availableList = String(available || "")
@@ -602,14 +441,9 @@ app.post("/generate-menu", async (req, res, next) => {
     
     console.log("📦 家にある食材:", availableList);
 
-    const prompt = buildPrompt({
-      toddlers,
-      kids,
-      adults,
-      days,
-      meals,
-      avoid,
-      request,
+    const prompt = buildStructuredPrompt({
+      toddlers, kids, adults, days, meals,
+      avoid, request,
       available: availableList.join('、'),
       avoidRecent
     });
@@ -622,61 +456,29 @@ app.post("/generate-menu", async (req, res, next) => {
       json = JSON.parse(raw);
     } catch (parseError) {
       console.warn("⚠️ 初回JSONパース失敗、リトライします");
-      const retry = prompt + "\n\n【重要】JSON以外は出力しない。";
-      content = await callModel(retry, { temperature: 0.4 });
+      const retry = prompt + "\n\n【最重要】有効なJSONのみを出力してください。";
+      content = await callModel(retry, { temperature: 0.5 });
       raw = extractFirstJson(content);
       json = JSON.parse(raw);
     }
 
-    json.menu = (json.menu || []).map(d => {
-      const n = d.nutrition || {};
-      return {
-        ...d,
-        nutrition: {
-          kcal: Number.isFinite(n.kcal) ? n.kcal : 0,
-          protein_g: Number.isFinite(n.protein_g) ? n.protein_g : 0,
-          veg_servings: Number.isFinite(n.veg_servings) ? n.veg_servings : 0,
-          balance: typeof n.balance === "string" ? n.balance : ""
-        }
-      };
-    });
-
-    json.menu = (json.menu || []).map(d => {
-      const out = { ...d, meals: { ...(d.meals || {}) } };
-      ["朝食","昼食","夕食"].forEach(m => {
-        if (out.meals[m] != null) {
-          out.meals[m] = sanitizeMeal(String(out.meals[m] || ""), m);
-        }
-      });
-      return out;
-    });
-
-    json.menu = filterMenu(json.menu);
-
-    json.availableList = availableList;
+    // 構造化メニューを処理
+    let structuredMenu = json.menu || [];
     
-    console.log("📦 設定されたavailableList:", json.availableList);
-
-    json.shoppingList = ensureShoppingFromMenu(json.menu, json.shoppingList);
+    // 重複回避処理
+    structuredMenu = avoidDuplicates(structuredMenu);
     
-    json.shoppingList = stripAvailableFromShoppingList(
-      json.shoppingList,
+    // 買い物リスト生成
+    const shoppingList = generateShoppingList(structuredMenu, availableList);
+    
+    // レガシー形式に変換（フロントエンド互換性のため）
+    const legacyMenu = convertToLegacyFormat(structuredMenu);
+
+    res.json({
+      menu: legacyMenu,
+      shoppingList,
       availableList
-    );
-
-    const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
-    for (const c of cats) {
-      const arr = Array.isArray(json.shoppingList[c]) ? json.shoppingList[c] : [];
-      json.shoppingList[c] = [...new Set(arr.map(s => s.trim()).filter(Boolean))];
-      json.shoppingList[c].sort((a, b) => a.localeCompare(b, 'ja'));
-    }
-
-    console.log("✅ 買い物リスト生成完了");
-    console.log("   カテゴリ別アイテム数:", 
-      Object.fromEntries(cats.map(c => [c, json.shoppingList[c].length]))
-    );
-
-    res.json(json);
+    });
     
   } catch (e) {
     console.error("❌ 献立生成エラー:", e);
@@ -693,31 +495,19 @@ app.post("/generate-recipe", async (req, res, next) => {
     const portions = Number(adults) + Number(kids) * 0.7 + Number(toddlers) * 0.5;
     const servings = Math.max(2, Math.round(portions));
 
-    const cleanDish = (name = "") =>
-      String(name).replace(/[•●・\-]/g, "").replace(/\s+/g, " ").replace(/^\s*・?\s*/, "").trim();
-    const normalizeDish = (name = "") => {
-      let n = cleanDish(name) || "鶏の照り焼き";
-      if (/^(豆腐)$/i.test(n)) n = "豆腐ステーキ";
-      if (/^(サラダ)$/i.test(n)) n = "チキンサラダ";
-      if (/^(卵|納豆)$/i.test(n)) n = `${n}チャーハン`;
-      if (/サラダ$/.test(n) && !/(サンド|丼|定食|パスタ|うどん|そば|ラーメン|ご飯|ライス)/.test(n)) n = n.replace(/サラダ$/, "サラダサンド");
-      return n;
-    };
-    const safeDish = normalizeDish(dish);
-
     const prompt = `
-日本の家庭料理のレシピを厳密JSONで返してください。説明禁止。
+日本の家庭料理のレシピを厳密JSONで返してください。
 
-【料理名】${safeDish}
+【料理名】${dish || "鶏の照り焼き"}
 【分量】約${servings}人前
 【モード】${mode === "economy" ? "節約" : mode === "quick" ? "時短" : "標準"}
 
 {
   "title": "料理名",
   "servings": ${servings},
-  "ingredients": ["具体食材 量", "..."],
-  "seasonings": ["調味料 量", "..."],
-  "steps": ["手順1", "..."],
+  "ingredients": ["食材 分量", "..."],
+  "seasonings": ["調味料 分量", "..."],
+  "steps": ["手順1", "手順2", "..."],
   "tips": ["コツ1", "..."],
   "nutrition_per_serving": { "kcal": 0, "protein_g": 0 }
 }`.trim();
@@ -729,40 +519,30 @@ app.post("/generate-recipe", async (req, res, next) => {
     try {
       json = JSON.parse(raw);
     } catch {
-      const retry = prompt + "\n\n【重要】JSONのみを厳密に出力。";
-      content = await callModel(retry, { temperature: 0.3 });
+      const retry = prompt + "\n\n【重要】有効なJSONのみ。";
+      content = await callModel(retry, { temperature: 0.4 });
       raw = extractFirstJson(content);
       json = JSON.parse(raw);
     }
 
     res.json(json);
   } catch (e) {
-    console.error("レシピ生成エラー:", e);
+    console.error("❌ レシピ生成エラー:", e);
     next(e);
   }
 });
 
 /* ===========================
-   API: 単品レシピ提案（recipe.html用）
+   API: 単品レシピ提案
 =========================== */
 app.post("/recipe", async (req, res, next) => {
   try {
     console.log("🍳 レシピ提案リクエスト受信");
     
     const {
-      ingredients,
-      useIn = [],
-      toddlers = 0,
-      kids = 0,
-      adults = 2,
-      wantKidsMenu = "いいえ",
-      genre = "",
-      request = "",
-      avoid = "",
-      menuType = "recipe",
-      mainDish = false,
-      sideDish = false,
-      soup = false
+      ingredients, useIn = [], toddlers = 0, kids = 0, adults = 2,
+      wantKidsMenu = "いいえ", genre = "", request = "", avoid = "",
+      menuType = "recipe"
     } = req.body;
 
     const portions = Number(adults) + Number(kids) * 0.7 + Number(toddlers) * 0.5;
@@ -771,7 +551,6 @@ app.post("/recipe", async (req, res, next) => {
     let prompt = "";
 
     if (menuType === "menu") {
-      // 1食の献立
       prompt = `
 【1食分の献立提案】
 食材: ${ingredients}
@@ -782,7 +561,6 @@ app.post("/recipe", async (req, res, next) => {
 避けたい: ${avoid || "なし"}
 
 主菜・副菜・汁物のバランスの取れた1食分の献立を提案してください。
-各料理の簡単な作り方も含めてください。
 
 【出力形式】
 ■ 主菜: 料理名
@@ -797,11 +575,9 @@ app.post("/recipe", async (req, res, next) => {
 材料: ...
 作り方: ...
 `.trim();
-
     } else {
-      // 単品レシピ
       const useInText = useIn.length > 0 
-        ? `（${useIn.map(x => x === 'main' ? '主菜' : x === 'side' ? '副菜' : '汁物').join('・')}で使用）` 
+        ? `（${useIn.map(x => x === 'main' ? '主菜' : x === 'side' ? '副菜' : '汁物').join('・')}）` 
         : '';
       
       prompt = `
@@ -820,12 +596,10 @@ app.post("/recipe", async (req, res, next) => {
 
 ■ 材料（${servings}人前）
 - 食材名: 分量
-- ...
 
 ■ 作り方
 1. 手順1
 2. 手順2
-...
 
 ■ ポイント
 - コツやアレンジ案
@@ -835,7 +609,6 @@ app.post("/recipe", async (req, res, next) => {
     const content = await callModel(prompt, { temperature: 0.7 });
     
     console.log("✅ レシピ提案生成完了");
-    
     res.json({ recipe: content });
     
   } catch (e) {
@@ -860,21 +633,16 @@ app.post("/recalc-shopping", async (req, res, next) => {
     
     console.log("📦 家にある食材:", availableList);
 
-    let shopping = ensureShoppingFromMenu(menu, {});
+    // レガシー形式から食材を抽出（簡易版）
+    const extractedMenu = menu.map(day => ({
+      day: day.day,
+      meals: day.meals,
+      ingredients: extractIngredientsFromMeals(day.meals)
+    }));
     
-    shopping = stripAvailableFromShoppingList(shopping, availableList);
-
-    const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
-    for (const c of cats) {
-      const arr = Array.isArray(shopping[c]) ? shopping[c] : [];
-      shopping[c] = [...new Set(arr.map(s => s.trim()).filter(Boolean))];
-      shopping[c].sort((a, b) => a.localeCompare(b, 'ja'));
-    }
+    const shopping = generateShoppingList(extractedMenu, availableList);
     
     console.log("✅ 買い物リスト再計算完了");
-    console.log("   カテゴリ別アイテム数:", 
-      Object.fromEntries(cats.map(c => [c, shopping[c].length]))
-    );
     
     res.json({ 
       shoppingList: shopping, 
@@ -886,6 +654,26 @@ app.post("/recalc-shopping", async (req, res, next) => {
     next(e);
   }
 });
+
+// 料理名から食材を抽出（簡易版）
+function extractIngredientsFromMeals(meals) {
+  const ingredients = {};
+  
+  for (const [mealType, dishText] of Object.entries(meals || {})) {
+    const text = String(dishText || "");
+    
+    for (const [ingredient, data] of Object.entries(INGREDIENT_DATABASE)) {
+      if (text.includes(ingredient)) {
+        if (!ingredients[ingredient]) {
+          ingredients[ingredient] = [];
+        }
+        ingredients[ingredient].push(`${mealType}-main`);
+      }
+    }
+  }
+  
+  return ingredients;
+}
 
 /* ===========================
    エラーハンドラ
