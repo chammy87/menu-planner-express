@@ -424,7 +424,7 @@ function normalizeProteinToken(token = "") {
   return null;
 }
 
-// 料理名を除外する処理を追加
+// 料理名と加工品を除外する処理
 function ensureShoppingFromMenu(menu = [], shopping = {}) {
   const cats = ["野菜・果物","肉・魚・卵・乳製品","穀物・麺類・パン","調味料・油","その他"];
   cats.forEach(c => (shopping[c] = Array.isArray(shopping[c]) ? shopping[c] : []));
@@ -432,8 +432,9 @@ function ensureShoppingFromMenu(menu = [], shopping = {}) {
   const seen = {};
   cats.forEach(c => (seen[c] = new Set((shopping[c] || []).map(x => x.trim().toLowerCase()))));
 
-  // 料理名を除外するための正規表現
+  // 料理名や加工品を除外
   const dishPattern = /(カレー|チャーハン|炒飯|焼きそば|丼|サラダ|スープ|味噌汁|煮物|炒め|焼き|揚げ|蒸し|和え|漬け|グラタン|シチュー|リゾット)/;
+  const excludePattern = /(ツナ缶|おにぎり|トースト|ヨーグルト|グラノーラ|パンケーキ|サンドイッチ|ホットサンド)/;
 
   for (const day of (menu || [])) {
     for (const meal of ["朝食","昼食","夕食"]) {
@@ -444,9 +445,9 @@ function ensureShoppingFromMenu(menu = [], shopping = {}) {
       for (let t0 of toks) {
         let t = canon(t0);
         
-        // 料理名っぽいトークンはスキップ
-        if (dishPattern.test(t)) {
-          console.log(`  ⏭️ スキップ（料理名）: ${t}`);
+        // 料理名や加工品はスキップ
+        if (dishPattern.test(t) || excludePattern.test(t)) {
+          console.log(`  ⏭️ スキップ（料理名/加工品）: ${t}`);
           continue;
         }
         
@@ -458,8 +459,12 @@ function ensureShoppingFromMenu(menu = [], shopping = {}) {
         if (!cat) {
           const staple = pickStapleFrom(t);
           if (staple) {
-            // トーストはパンに統合
-            t = (staple === "トースト") ? "パン" : staple;
+            // 基本食材のみ追加（加工品は除外）
+            if (excludePattern.test(staple)) {
+              console.log(`  ⏭️ スキップ（加工品）: ${staple}`);
+              continue;
+            }
+            t = staple;
             cat = "穀物・麺類・パン";
           } else {
             const prot = normalizeProteinToken(t);
