@@ -59,10 +59,30 @@ const INGREDIENT_DATABASE = {
   "ブロッコリー": { category: "野菜・果物", alternatives: ["カリフラワー","アスパラガス"] },
   "ピーマン": { category: "野菜・果物", alternatives: ["パプリカ","なす"] },
   "トマト": { category: "野菜・果物", alternatives: ["ミニトマト"] },
+  "ミニトマト": { category: "野菜・果物", alternatives: ["トマト"] },
   "なす": { category: "野菜・果物", alternatives: ["ズッキーニ","ピーマン"] },
   "大根": { category: "野菜・果物", alternatives: ["かぶ","にんじん"] },
   "もやし": { category: "野菜・果物", alternatives: ["キャベツ"] },
   "長ねぎ": { category: "野菜・果物", alternatives: ["玉ねぎ","ニラ"] },
+  "きゅうり": { category: "野菜・果物", alternatives: ["レタス","トマト"] },
+  "レタス": { category: "野菜・果物", alternatives: ["キャベツ","白菜"] },
+  "アボカド": { category: "野菜・果物", alternatives: ["トマト"] },
+  "アスパラガス": { category: "野菜・果物", alternatives: ["ブロッコリー","いんげん"] },
+  "小松菜": { category: "野菜・果物", alternatives: ["ほうれん草","チンゲン菜"] },
+  "チンゲン菜": { category: "野菜・果物", alternatives: ["小松菜","ほうれん草"] },
+  "かぶ": { category: "野菜・果物", alternatives: ["大根","にんじん"] },
+  "さつまいも": { category: "野菜・果物", alternatives: ["じゃがいも","かぼちゃ"] },
+  "かぼちゃ": { category: "野菜・果物", alternatives: ["さつまいも","じゃがいも"] },
+  "わかめ": { category: "野菜・果物", alternatives: [] },
+  "枝豆": { category: "野菜・果物", alternatives: ["いんげん"] },
+  "ポテト": { category: "野菜・果物", alternatives: ["じゃがいも"] },
+  
+  // きのこ類
+  "しいたけ": { category: "野菜・果物", alternatives: ["しめじ","えのき"] },
+  "しめじ": { category: "野菜・果物", alternatives: ["しいたけ","えのき"] },
+  "えのき": { category: "野菜・果物", alternatives: ["しめじ","しいたけ"] },
+  "まいたけ": { category: "野菜・果物", alternatives: ["しめじ","しいたけ"] },
+  "きのこ": { category: "野菜・果物", alternatives: ["しめじ","しいたけ"] },
   
   // 肉類
   "鶏肉": { category: "肉・魚・卵・乳製品", alternatives: ["豚肉","ひき肉"], protein: true },
@@ -75,6 +95,9 @@ const INGREDIENT_DATABASE = {
   "鯖": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","サワラ"], protein: true },
   "タラ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
   "サワラ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
+  "白身魚": { category: "肉・魚・卵・乳製品", alternatives: ["タラ","鮭"], protein: true },
+  "マグロ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
+  "ツナ": { category: "肉・魚・卵・乳製品", alternatives: ["鶏肉"], protein: true },
   
   // たんぱく質
   "卵": { category: "肉・魚・卵・乳製品", alternatives: ["豆腐"], protein: true },
@@ -90,6 +113,7 @@ const INGREDIENT_DATABASE = {
   "そば": { category: "穀物・麺類・パン", staple: true },
   "パスタ": { category: "穀物・麺類・パン", staple: true },
   "中華麺": { category: "穀物・麺類・パン", staple: true },
+  "焼きそば": { category: "穀物・麺類・パン", staple: true },
   
   // 基本調味料
   "味噌": { category: "調味料・油", seasoning: true },
@@ -102,6 +126,8 @@ const INGREDIENT_DATABASE = {
   "サラダ油": { category: "調味料・油", seasoning: true },
   "ごま油": { category: "調味料・油", seasoning: true },
   "酢": { category: "調味料・油", seasoning: true },
+  "バター": { category: "調味料・油", seasoning: true },
+  "オリーブオイル": { category: "調味料・油", seasoning: true },
 };
 
 /* ===========================
