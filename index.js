@@ -226,6 +226,9 @@ function buildStructuredPrompt({ toddlers, kids, adults, days, meals = [], avoid
 3. 連続する日に同じ食材を使わない
 4. 汁物の具は「野菜、きのこ、豆腐、わかめ」のみ
 5. 各料理で使う主要食材を必ずingredientsに列挙する
+6. ご飯を使う場合は必ず「米」をingredientsに含める
+7. 味噌汁を作る場合は必ず「味噌」をingredientsに含める
+8. 調味料（醤油、みりん、酒、砂糖、塩、油など）も使用する場合はingredientsに含める
 
 【出力形式】厳密なJSONのみ（説明不要）
 
@@ -237,9 +240,12 @@ function buildStructuredPrompt({ toddlers, kids, adults, days, meals = [], avoid
         ${mealFields.join(',\n        ')}
       },
       "ingredients": {
+        "米": ["朝食-staple", "昼食-staple"],
         "鶏肉": ["朝食-main"],
         "キャベツ": ["昼食-side"],
-        "豆腐": ["夕食-soup"]
+        "豆腐": ["夕食-soup"],
+        "味噌": ["夕食-soup"],
+        "醤油": ["朝食-main", "昼食-main"]
       }
     }
   ]
@@ -322,6 +328,9 @@ function generateShoppingList(menu, availableList = []) {
   
   console.log("🔍 除外する食材:", [...availableNormalized]);
   
+  // 基本調味料を自動追加（家にない場合）
+  const basicSeasonings = ["味噌", "醤油", "みりん", "酒", "砂糖", "塩", "サラダ油"];
+  
   // 各日の食材を収集
   for (const day of menu) {
     for (const [ingredient, usage] of Object.entries(day.ingredients || {})) {
@@ -353,6 +362,42 @@ function generateShoppingList(menu, availableList = []) {
         console.log(`  ✅ 追加: ${ingredient} → ${category}`);
       }
     }
+  }
+  
+  // 基本調味料を自動追加（味噌汁や和食がある場合）
+  let hasMisoSoup = false;
+  let hasJapaneseDish = false;
+  
+  for (const day of menu) {
+    for (const [mealType, dishes] of Object.entries(day.meals || {})) {
+      const dishText = JSON.stringify(dishes).toLowerCase();
+      if (dishText.includes("味噌汁")) hasMisoSoup = true;
+      if (dishText.includes("照り焼き") || dishText.includes("煮物") || dishText.includes("炒め")) {
+        hasJapaneseDish = true;
+      }
+    }
+  }
+  
+  // 味噌汁がある場合は味噌を追加
+  if (hasMisoSoup && !availableNormalized.has(normalize("味噌"))) {
+    shopping["調味料・油"].add("味噌");
+    console.log(`  ✅ 自動追加: 味噌 → 調味料・油 (味噌汁のため)`);
+  }
+  
+  // 和食がある場合は基本調味料を追加
+  if (hasJapaneseDish) {
+    ["醤油", "みりん", "酒", "砂糖", "サラダ油"].forEach(seasoning => {
+      if (!availableNormalized.has(normalize(seasoning))) {
+        shopping["調味料・油"].add(seasoning);
+        console.log(`  ✅ 自動追加: ${seasoning} → 調味料・油`);
+      }
+    });
+  }
+  
+  // 塩は常に追加（ほぼすべての料理で使用）
+  if (!availableNormalized.has(normalize("塩"))) {
+    shopping["調味料・油"].add("塩");
+    console.log(`  ✅ 自動追加: 塩 → 調味料・油`);
   }
   
   // SetをArrayに変換してソート
