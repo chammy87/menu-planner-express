@@ -1,34 +1,352 @@
-<!-- ===== index.htmlのCSS修正 ===== -->
-<!-- <style>タグ内の該当部分を以下に置き換えてください -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>献立＆買い物リスト</title>
+  <style>
+    /* 基本スタイル */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+      background: #f5f7fa; 
+      color: #333; 
+      line-height: 1.6; 
+    }
+    .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+    
+    /* フォーム */
+    .form-card { 
+      background: white; 
+      padding: 24px; 
+      border-radius: 12px; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+      margin-bottom: 24px; 
+    }
+    label { display: block; margin-bottom: 12px; font-weight: 500; }
+    input[type="number"], input[type="text"], textarea { 
+      width: 100%; 
+      padding: 10px; 
+      border: 1px solid #ddd; 
+      border-radius: 6px; 
+      font-size: 14px; 
+    }
+    textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+    
+    .meal-selection { 
+      border: 1px solid #ddd; 
+      padding: 16px; 
+      border-radius: 8px; 
+      margin: 16px 0; 
+    }
+    .meal-options { display: flex; gap: 16px; flex-wrap: wrap; }
+    .meal-options label { 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      margin: 0; 
+      font-weight: normal;
+    }
+    
+    .mode-switch { 
+      display: flex; 
+      gap: 16px; 
+      margin: 16px 0; 
+      padding: 12px; 
+      background: #f8f9fa; 
+      border-radius: 8px; 
+    }
+    .mode-switch label { 
+      margin: 0; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      cursor: pointer; 
+      font-weight: normal;
+    }
+    
+    button { 
+      background: #3498db; 
+      color: white; 
+      border: none; 
+      padding: 14px 24px; 
+      border-radius: 8px; 
+      font-size: 16px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      width: 100%; 
+      transition: background 0.3s; 
+    }
+    button:hover { background: #2980b9; }
+    button:disabled { background: #95a5a6; cursor: not-allowed; }
+    
+    /* 献立カード */
+    .menu-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .menu-card h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+    
+    .menu-toolbar { margin-bottom: 16px; }
+    
+    .meals-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (max-width: 768px) {
+      .meals-grid { grid-template-columns: 1fr; }
+    }
+    
+    .meal-col {
+      background: #f9fbff;
+      border: 1px solid #dbe7ff;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .meal-col h4 {
+      margin: 0 0 8px;
+      color: #2a5fbf;
+      font-size: 14px;
+    }
+    .meal-col ul {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .meal-col li { margin-bottom: 4px; }
+    
+    .dish-btn {
+      background: none;
+      border: none;
+      color: #1a73e8;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      font-size: 14px;
+    }
+    .dish-btn:hover { 
+      color: #0d47a1;
+      text-decoration: underline;
+    }
+    
+    .nutri-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eef1f6;
+    }
+    .chip-kcal { background: #ffe9e9; }
+    .chip-protein { background: #e9f7ff; }
+    .chip-veg { background: #e9ffef; }
+    .chip-note { background: #f3e9ff; }
+    
+    .day-regen {
+      padding: 8px 16px;
+      border: 1px solid #3498db;
+      border-radius: 8px;
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+      margin: 6px 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      width: auto;
+      transition: background 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .day-regen:hover { 
+      background: #2980b9;
+      border-color: #2980b9;
+    }
+    .day-regen:disabled {
+      background: #95a5a6;
+      border-color: #95a5a6;
+      cursor: not-allowed;
+    }
+    
+    /* 買い物リスト */
+    .shopping-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .shopping-category {
+      margin-bottom: 16px;
+      border-left: 6px solid #ddd;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .shopping-category h4 {
+      margin: 0;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: #fff;
+      border-top-right-radius: 10px;
+      user-select: none;
+    }
+    .shopping-category ul {
+      list-style: none;
+      padding: 8px 10px;
+      margin: 0;
+      transition: max-height 0.3s ease;
+    }
+    .shopping-category ul.collapsed {
+      max-height: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      padding: 6px 0;
+      gap: 8px;
+    }
+    .shopping-item input[type="checkbox"] { cursor: pointer; }
+    .shopping-item.checked span {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    
+    /* モーダル */
+    .modal { 
+      display: none; 
+      position: fixed; 
+      z-index: 1000; 
+      left: 0; 
+      top: 0; 
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.5); 
+    }
+    .modal-content { 
+      background: white; 
+      margin: 5% auto; 
+      padding: 30px; 
+      border-radius: 12px; 
+      max-width: 600px; 
+      width: 90%; 
+      max-height: 80vh; 
+      overflow-y: auto; 
+      position: relative; 
+    }
+    .modal-close { 
+      position: absolute; 
+      top: 15px; 
+      right: 15px; 
+      font-size: 28px; 
+      font-weight: bold; 
+      color: #333;
+      cursor: pointer; 
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      padding: 0; 
+      line-height: 34px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { 
+      background: #e0e0e0;
+      color: #d32f2f;
+    }
+    
+    /* ローディングアニメーション */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>🍳 献立＆買い物リスト</h1>
 
-/* モーダルの閉じるボタン - 視認性改善 */
-.modal-close { 
-  position: absolute; 
-  top: 15px; 
-  right: 15px; 
-  font-size: 28px; 
-  font-weight: bold; 
-  color: #333; /* ★ 白→黒に変更 */
-  cursor: pointer; 
-  background: #f0f0f0; /* ★ 背景色追加 */
-  border: 1px solid #ddd; /* ★ ボーダー追加 */
-  border-radius: 50%; /* ★ 丸ボタンに */
-  width: 36px; /* ★ サイズ指定 */
-  height: 36px; /* ★ サイズ指定 */
-  padding: 0;
-  line-height: 34px; /* ★ 中央揃え */
-  text-align: center;
-  transition: all 0.2s;
-}
-.modal-close:hover { 
-  background: #e0e0e0;
-  color: #d32f2f; /* ホバー時は赤 */
-}
+    <!-- フォーム -->
+    <div class="form-card">
+      <label>幼児の人数：
+        <input type="number" id="toddlers" min="0" max="10" value="0">
+      </label>
+      <label>小学生の人数：
+        <input type="number" id="kids" min="0" max="10" value="0">
+      </label>
+      <label>大人の人数：
+        <input type="number" id="adults" min="1" max="10" value="2">
+      </label>
+      <label>日数：
+        <input type="number" id="days" min="1" max="14" value="3">
+      </label>
 
-/* ローディングアニメーション追加 */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+      <fieldset class="meal-selection">
+        <legend>食事の回数</legend>
+        <div class="meal-options">
+          <label><input type="checkbox" id="meal-breakfast" value="朝食" checked /> 朝食</label>
+          <label><input type="checkbox" id="meal-lunch" value="昼食" checked /> 昼食</label>
+          <label><input type="checkbox" id="meal-dinner" value="夕食" checked /> 夕食</label>
+        </div>
+      </fieldset>
 
-<!-- ===== ここまで ===== -->
+      <div class="mode-switch">
+        <label><input type="radio" name="mode" value="standard" checked> 標準</label>
+        <label><input type="radio" name="mode" value="economy"> 節約</label>
+        <label><input type="radio" name="mode" value="quick"> 時短</label>
+      </div>
+
+      <label>避けたい食材：
+        <input type="text" id="avoid" placeholder="例：なす、えび">
+      </label>
+
+      <label>リクエスト：
+        <input type="text" id="request" placeholder="例：ヘルシー、和食中心">
+      </label>
+
+      <label>家にある食材：
+        <textarea id="available" placeholder="冷蔵庫にある食材をカンマ区切りで入力（例：キャベツ、豚肉、卵）"></textarea>
+      </label>
+
+      <button id="generateBtn">献立を考えてみる 🔍</button>
+    </div>
+
+    <!-- 結果エリア -->
+    <div id="menuResults"></div>
+  </div>
+
+  <!-- レシピモーダル -->
+  <div id="recipeModal" class="modal">
+    <div class="modal-content">
+      <button id="recipeClose" class="modal-close">×</button>
+      <div id="recipeBody"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
