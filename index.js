@@ -739,19 +739,51 @@ app.post("/recalc-shopping", async (req, res, next) => {
   }
 });
 
-// 料理名から食材を抽出（簡易版）
+// 料理名から食材を抽出（改善版）
 function extractIngredientsFromMeals(meals) {
   const ingredients = {};
   
   for (const [mealType, dishText] of Object.entries(meals || {})) {
     const text = String(dishText || "");
     
-    for (const [ingredient, data] of Object.entries(INGREDIENT_DATABASE)) {
+    // データベースにある食材を長い順にチェック（長いものほど具体的）
+    const sortedIngredients = Object.keys(INGREDIENT_DATABASE)
+      .sort((a, b) => b.length - a.length);
+    
+    for (const ingredient of sortedIngredients) {
       if (text.includes(ingredient)) {
         if (!ingredients[ingredient]) {
           ingredients[ingredient] = [];
         }
-        ingredients[ingredient].push(`${mealType}-main`);
+        // 重複チェック
+        const position = `${mealType}-main`;
+        if (!ingredients[ingredient].includes(position)) {
+          ingredients[ingredient].push(position);
+        }
+      }
+    }
+    
+    // よくある別名パターンも検出
+    const patterns = {
+      "アボカド": /アボカド/,
+      "きゅうり": /きゅうり|キュウリ/,
+      "白身魚": /白身魚/,
+      "マグロ": /マグロ|まぐろ/,
+      "きのこ": /きのこ|キノコ|しいたけ|しめじ|えのき|まいたけ/,
+      "ポテト": /ポテト/,
+      "わかめ": /わかめ|ワカメ/,
+      "枝豆": /枝豆|えだまめ/,
+    };
+    
+    for (const [ingredient, pattern] of Object.entries(patterns)) {
+      if (pattern.test(text) && INGREDIENT_DATABASE[ingredient]) {
+        if (!ingredients[ingredient]) {
+          ingredients[ingredient] = [];
+        }
+        const position = `${mealType}-main`;
+        if (!ingredients[ingredient].includes(position)) {
+          ingredients[ingredient].push(position);
+        }
       }
     }
   }
