@@ -90,7 +90,7 @@ const INGREDIENT_DATABASE = {
   "牛肉": { category: "肉・魚・卵・乳製品", alternatives: ["豚肉","鶏肉"], protein: true },
   "ひき肉": { category: "肉・魚・卵・乳製品", alternatives: ["鶏肉","豚肉"], protein: true },
   
-  // 魚類
+  // 魚類・魚介類
   "鮭": { category: "肉・魚・卵・乳製品", alternatives: ["鯖","タラ"], protein: true },
   "鯖": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","サワラ"], protein: true },
   "タラ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
@@ -98,6 +98,15 @@ const INGREDIENT_DATABASE = {
   "白身魚": { category: "肉・魚・卵・乳製品", alternatives: ["タラ","鮭"], protein: true },
   "マグロ": { category: "肉・魚・卵・乳製品", alternatives: ["鮭","鯖"], protein: true },
   "ツナ": { category: "肉・魚・卵・乳製品", alternatives: ["鶏肉"], protein: true },
+  "エビ": { category: "肉・魚・卵・乳製品", alternatives: ["イカ","ホタテ"], protein: true },
+  "えび": { category: "肉・魚・卵・乳製品", alternatives: ["イカ","ホタテ"], protein: true },
+  "イカ": { category: "肉・魚・卵・乳製品", alternatives: ["エビ","タコ"], protein: true },
+  "いか": { category: "肉・魚・卵・乳製品", alternatives: ["エビ","タコ"], protein: true },
+  "ホタテ": { category: "肉・魚・卵・乳製品", alternatives: ["エビ","イカ"], protein: true },
+  "タコ": { category: "肉・魚・卵・乳製品", alternatives: ["イカ","エビ"], protein: true },
+  "たこ": { category: "肉・魚・卵・乳製品", alternatives: ["イカ","エビ"], protein: true },
+  "あさり": { category: "肉・魚・卵・乳製品", alternatives: ["ホタテ"] },
+  "しらす": { category: "肉・魚・卵・乳製品", alternatives: [] },
   
   // たんぱく質
   "卵": { category: "肉・魚・卵・乳製品", alternatives: ["豆腐"], protein: true },
@@ -255,6 +264,8 @@ function buildStructuredPrompt({ toddlers, kids, adults, days, meals = [], avoid
 6. ご飯を使う場合は必ず「米」をingredientsに含める
 7. 味噌汁を作る場合は必ず「味噌」をingredientsに含める
 8. 調味料（醤油、みりん、酒、砂糖、塩、油など）も使用する場合はingredientsに含める
+9. 【重要】エビ、イカ、タコなどの魚介類を使う場合は必ず「エビ」「イカ」「タコ」とingredientsに含める
+10. 野菜も具体的に（例：「サラダ」なら「レタス」「トマト」「きゅうり」など）
 
 【出力形式】厳密なJSONのみ（説明不要）
 
@@ -765,14 +776,21 @@ function extractIngredientsFromMeals(meals) {
     
     // よくある別名パターンも検出
     const patterns = {
+      "エビ": /エビ|えび|海老/,
+      "イカ": /イカ|いか|烏賊/,
+      "タコ": /タコ|たこ|蛸/,
       "アボカド": /アボカド/,
-      "きゅうり": /きゅうり|キュウリ/,
+      "きゅうり": /きゅうり|キュウリ|胡瓜/,
       "白身魚": /白身魚/,
-      "マグロ": /マグロ|まぐろ/,
+      "マグロ": /マグロ|まぐろ|鮪/,
       "きのこ": /きのこ|キノコ|しいたけ|しめじ|えのき|まいたけ/,
       "ポテト": /ポテト/,
       "わかめ": /わかめ|ワカメ/,
       "枝豆": /枝豆|えだまめ/,
+      "チャーハン": /チャーハン|炒飯|チャーハン/,
+      "ごま": /ごま|ゴマ|胡麻/,
+      "しょうが": /しょうが|ショウガ|生姜/,
+      "にんにく": /にんにく|ニンニク/,
     };
     
     for (const [ingredient, pattern] of Object.entries(patterns)) {
@@ -790,6 +808,159 @@ function extractIngredientsFromMeals(meals) {
   
   return ingredients;
 }
+
+/* ===========================
+   API: その日の献立再生成
+=========================== */
+app.post("/regenerate-day", async (req, res, next) => {
+  try {
+    console.log("🔄 その日の献立再生成リクエスト");
+    
+    const {
+      day,
+      toddlers = 0,
+      kids = 0,
+      adults = 2,
+      meals = ["朝食", "昼食", "夕食"],
+      avoid = "",
+      request = "",
+      available = "",
+      avoidRecent = []
+    } = req.body;
+
+    const availableList = String(available || "")
+      .split(/[、,]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const prompt = buildStructuredPrompt({
+      toddlers,
+      kids,
+      adults,
+      days: 1,
+      meals,
+      avoid,
+      request,
+      available: availableList.join('、'),
+      avoidRecent
+    });
+
+    let content = await callModel(prompt, { temperature: 0.8 });
+    let raw = extractFirstJson(content);
+    let json;
+    
+    try {
+      json = JSON.parse(raw);
+    } catch (parseError) {
+      console.warn("⚠️ 初回JSONパース失敗、リトライします");
+      const retry = prompt + "\n\n【最重要】有効なJSONのみを出力してください。";
+      content = await callModel(retry, { temperature: 0.6 });
+      raw = extractFirstJson(content);
+      json = JSON.parse(raw);
+    }
+
+    let structuredMenu = json.menu || [];
+    
+    // 日番号を設定
+    if (structuredMenu.length > 0) {
+      structuredMenu[0].day = day;
+    }
+    
+    // レガシー形式に変換
+    const legacyMenu = convertToLegacyFormat(structuredMenu);
+
+    res.json({
+      day: legacyMenu[0] || { day, meals: {}, nutrition: {} }
+    });
+    
+  } catch (e) {
+    console.error("❌ 献立再生成エラー:", e);
+    next(e);
+  }
+});
+
+/* ===========================
+   API: その日の全レシピ生成
+=========================== */
+app.post("/generate-day-recipes", async (req, res, next) => {
+  try {
+    console.log("🍳 その日の全レシピ生成リクエスト");
+    
+    const {
+      dayData,
+      toddlers = 0,
+      kids = 0,
+      adults = 2,
+      mode = "standard"
+    } = req.body;
+
+    const recipes = [];
+    
+    // 各食事の各料理のレシピを生成
+    for (const [mealType, dishes] of Object.entries(dayData.meals || {})) {
+      const dishList = Array.isArray(dishes) ? dishes : [dishes];
+      
+      for (const dish of dishList) {
+        if (!dish) continue;
+        
+        try {
+          const portions = Number(adults) + Number(kids) * 0.7 + Number(toddlers) * 0.5;
+          const servings = Math.max(2, Math.round(portions));
+
+          const prompt = `
+日本の家庭料理のレシピを厳密JSONで返してください。
+
+【料理名】${dish}
+【分量】約${servings}人前
+【モード】${mode === "economy" ? "節約" : mode === "quick" ? "時短" : "標準"}
+
+{
+  "title": "料理名",
+  "servings": ${servings},
+  "ingredients": ["食材 分量", "..."],
+  "seasonings": ["調味料 分量", "..."],
+  "steps": ["手順1", "手順2", "..."],
+  "tips": ["コツ1", "..."],
+  "nutrition_per_serving": { "kcal": 0, "protein_g": 0 }
+}`.trim();
+
+          let content = await callModel(prompt, { temperature: 0.6 });
+          let raw = extractFirstJson(content);
+          let json;
+          
+          try {
+            json = JSON.parse(raw);
+          } catch {
+            const retry = prompt + "\n\n【重要】有効なJSONのみ。";
+            content = await callModel(retry, { temperature: 0.4 });
+            raw = extractFirstJson(content);
+            json = JSON.parse(raw);
+          }
+
+          recipes.push({
+            mealType,
+            dish,
+            recipe: json
+          });
+          
+        } catch (error) {
+          console.error(`❌ ${dish}のレシピ生成失敗:`, error);
+          recipes.push({
+            mealType,
+            dish,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    res.json({ recipes });
+    
+  } catch (e) {
+    console.error("❌ 全レシピ生成エラー:", e);
+    next(e);
+  }
+});
 
 /* ===========================
    エラーハンドラ
